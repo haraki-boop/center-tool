@@ -3,156 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>昭和冷蔵DX推進サポート - AIセンター長</title>
+    <title>AIセンター長（裏荒木）- 統治OS</title>
     <style>
         :root {
-            --primary-color: #003366; /* 落ち着いたネイビー */
-            --bg-color: #f4f7f9;
-            --user-msg: #e1f5fe;
-            --ai-msg: #ffffff;
+            --primary: #1a237e; /* 信頼のネイビー */
+            --accent: #d32f2f; /* 警告の赤 */
+            --bg: #f0f2f5;
+            --white: #ffffff;
         }
-        body {
-            background-color: var(--bg-color);
-            color: #333;
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        #chat-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .bubble {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 15px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .ai { align-self: flex-start; background-color: var(--ai-msg); border: 1px solid #ddd; }
-        .user { align-self: flex-end; background-color: var(--user-msg); }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; flex-direction: column; }
+        header { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        #loss-ticker { font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; }
+        #chat-window { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 85%; padding: 15px; border-radius: 10px; font-size: 0.9rem; line-height: 1.6; position: relative; }
+        .ai { align-self: flex-start; background: var(--white); border-left: 5px solid var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .user { align-self: flex-end; background: #c5cae9; color: #1a237e; }
+        .data-source { font-size: 0.75rem; color: #666; margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 5px; }
         
-        #quick-actions {
-            padding: 10px 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            background: white;
-            border-top: 1px solid #ddd;
-        }
-        .btn-action {
-            background: #fff;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-action:hover { background: var(--primary-color); color: white; }
-
-        #input-area {
-            display: flex;
-            padding: 15px;
-            background: white;
-            gap: 10px;
-        }
-        input[type="text"] {
-            flex-grow: 1;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 10px;
-            outline: none;
-        }
-        button#send {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        #input-panel { background: white; padding: 20px; border-top: 1px solid #ddd; }
+        .input-group { display: flex; gap: 10px; }
+        input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; outline: none; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .suggestion-chips { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .chip { background: #e0e0e0; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; cursor: pointer; }
+        .chip:hover { background: #cfd8dc; }
     </style>
 </head>
 <body>
 
 <header>
-    <strong>昭和冷蔵DX推進サポート</strong>
+    <div><strong>AIセンター長：統治OS</strong> <span style="font-size:0.7rem; opacity:0.8;">Ver. 2.0 (Powered by Logic & Data)</span></div>
+    <div id="loss-ticker">昭和冷蔵 25年追走損失: ¥2,814,000</div>
 </header>
 
-<div id="chat-container">
-    <div class="bubble ai">
-        お疲れ様です。センター長の荒木です。<br>
-        現場の課題や、システム・交渉の停滞について相談してください。最適な解決策を提示します。
+<div id="chat-window">
+    <div class="msg ai">
+        主君、ならびに実行部隊の諸君。挨拶は省略する。<br>
+        私は君たちの提供したすべての現場評価、工数推移、契約条件を学習済みだ。<br>
+        現場の甘えを切り捨て、利益を最大化するための「正解」だけを答える。
     </div>
 </div>
 
-<div id="quick-actions">
-    <button class="btn-action" onclick="ask('システム担当者から返信が来ない')">システム部からの返信待機</button>
-    <button class="btn-action" onclick="ask('現場スタッフが変化を嫌がっている')">スタッフの教育・意識改革</button>
-    <button class="btn-action" onclick="ask('損失コストを値上げ交渉に使いたい')">追走費281万の活用法</button>
-    <button class="btn-action" onclick="ask('BBのアプリ導入を急ぎたい')">BB部門の先行導入</button>
-</div>
-
-<div id="input-area">
-    <input type="text" id="userInput" placeholder="質問を入力してください...">
-    <button id="send" onclick="execute()">送信</button>
+<div id="input-panel">
+    <div class="suggestion-chips">
+        <div class="chip" onclick="ask('昭和冷蔵：小笠原次長への対策')">小笠原次長への対策</div>
+        <div class="chip" onclick="ask('昭和冷蔵：事故損失と値上げのロジック')">事故損失と値上げのロジック</div>
+        <div class="chip" onclick="ask('全拠点の定性的ランク付けを教えろ')">全拠点の難易度分析</div>
+        <div class="chip" onclick="ask('深夜手当・不公平の是正手順')">深夜手当の是正</div>
+    </div>
+    <div class="input-group">
+        <input type="text" id="userInput" placeholder="報告、または指示を仰げ...">
+        <button onclick="execute()">執行</button>
+    </div>
 </div>
 
 <script>
-    function addMessage(text, side) {
-        const container = document.getElementById('chat-container');
-        const bubble = document.createElement('div');
-        bubble.className = `bubble ${side}`;
-        bubble.innerHTML = text;
-        container.appendChild(bubble);
-        container.scrollTop = container.scrollHeight;
+    const lossData = "281.4万円";
+    
+    function addMsg(text, side, source = "") {
+        const win = document.getElementById('chat-window');
+        const div = document.createElement('div');
+        div.className = `msg ${side}`;
+        div.innerHTML = text + (source ? `<div class="data-source">参照ソース: ${source}</div>` : "");
+        win.appendChild(div);
+        win.scrollTop = win.scrollHeight;
     }
 
-    function ask(query) {
-        addMessage(query, 'user');
-        process(query);
-    }
-
+    function ask(q) { addMsg(query, 'user'); process(q); }
     function execute() {
         const input = document.getElementById('userInput');
-        if (input.value.trim() === "") return;
-        ask(input.value);
+        if (!input.value) return;
+        addMsg(input.value, 'user');
+        process(input.value);
         input.value = "";
     }
 
     function process(text) {
-        setTimeout(() => {
-            let response = "その件については、まず客観的なデータを揃えましょう。具体的な状況を詳しく教えてください。";
-            
-            if(text.includes("システム") || text.includes("返信")) {
-                response = "<strong>【回答】</strong> 小笠原様の多忙を考慮し、御社の改修工数を一切奪わない「BBデータ抜き取りスキーム」での先行稼働を提案してください。関係性を保ちつつ、既成事実を積み上げるのが最短ルートです。";
-            } else if(text.includes("スタッフ") || text.includes("変化")) {
-                response = "<strong>【回答】</strong> 感情的な反発には「メリット」で返します。機械化がスタッフを『ミスの責任』から解放することを説き、それでも困難な場合は配置の適正化を検討してください。";
-            } else if(text.includes("281万") || text.includes("コスト")) {
-                response = "<strong>【回答】</strong> 281万円の追走費は、御社のブランドを守るための『投資の遅れ』による損失です。これを共通の課題として提示し、DX化によるコスト削減をセットで値上げの受理へ繋げましょう。";
-            } else if(text.includes("BB")) {
-                response = "<strong>【回答】</strong> BBは改修なしでデータ取得が可能です。まずはここで『事故ゼロ』の成功事例を1ヶ月で作り、それを武器に汎用カテゴリーのバッチ改修を認めさせます。";
-            }
+        let res = "その質問に対する論理的データが不足している。現状をPLベースで報告しろ。";
+        let src = "全拠点評価、KPIシート、mtg文字起こし";
 
-            addMessage(response, 'ai');
-        }, 600);
+        if(text.includes("小笠原") || text.includes("返信")) {
+            res = "<strong>【戦略】</strong> 返信を待つ時間は経営上の死に体だ。小笠原氏が新センターで手一杯なのを逆手に取り、『御社の工数を1分も使わない、印刷スプール解析によるBB先行稼働』を通告せよ。反対されない限り承認と見なし、既成事実化せよ。";
+            src = "PAL仕分けアプリ提案書, 4/21mtgメモ";
+        } else if(text.includes("損失") || text.includes("値上げ")) {
+            res = `<strong>【戦略】</strong> 追走費${lossData}を単なる経費として報告するな。これは「アナログ運用を放置したことによる罰金」だ。このデータを佐々木部長に突きつけ、DXによる近代化と引き換えに、6年間据え置かれた単価の改定を『当然の権利』として受理させろ。`;
+            src = "LookerS事故分析, 25年値上げ資料";
+        } else if(text.includes("難易度") || text.includes("ランク")) {
+            res = "<strong>【拠点分析】</strong> 南関東は13拠点で最悪の環境（老朽化・外国人比率8割）であり、頭の固い10年選手が足かせだ。対照的にクラフトデリカはDX化が進んでおり、南関東の頭の固いシニアを排除した理想の構成。昭和冷蔵は治安が悪く、横柄なベテランを昇給によるアメと鞭でコントロールする必要がある。";
+            src = "定性的現場評価、組織図";
+        } else if(text.includes("深夜手当") || text.includes("不公平")) {
+            res = "<strong>【内部統治】</strong> 藤田・岡田の件は、深夜割増を考慮しない不適切な給与設定が原因だ。藤田を昭和冷蔵へ移動させたことで給与が不当に跳ね上がっている。これは他の社員へのノイズとなるため、雇用条件の巻き直しを断行せよ。抵抗する者は『時代遅れのデバイス』として淘汰対象とする。";
+            src = "2604工数データ、深夜手当不公平是正ロジック";
+        }
+
+        setTimeout(() => addMsg(res, 'ai', src), 500);
     }
 </script>
 </body>
