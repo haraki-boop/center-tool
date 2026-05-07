@@ -26,14 +26,14 @@
 <div id="settings-overlay">
     <div id="settings-box">
         <h3 style="margin-top:0; color:var(--primary);">執行キー設定</h3>
-        <p style="font-size:0.8rem; color:#666;">Google AI Studioのキー(AIzaSy...)を入力せよ。</p>
+        <p style="font-size:0.8rem; color:#666;">Google AI Studioのキー(AIzaSy...)を入力。</p>
         <input type="password" id="apiKeyInput" style="width: 100%; border-radius: 8px; margin-bottom: 20px; padding: 12px;" placeholder="キーを貼り付け...">
-        <button onclick="saveSettings()" style="width: 100%; border-radius: 8px; padding: 14px; background: var(--primary); color: white; border: none; font-weight: bold;">保存して執行開始</button>
+        <button onclick="saveSettings()" style="width: 100%; border-radius: 8px; padding: 14px; background: var(--primary); color: white; border: none; font-weight: bold;">保存して開始</button>
     </div>
 </div>
 
 <header>
-    <div><small>執行OS v10.1</small><br><strong>裏荒木</strong></div>
+    <div><small>執行OS v10.2</small><br><strong>裏荒木</strong></div>
     <div style="display: flex; flex-direction: column; align-items: flex-end;">
         <div class="loss-text">昭和冷蔵 追走損失<br>¥2,814,000</div>
         <button onclick="toggleSettings()" style="background:none; border:1px solid rgba(255,255,255,0.4); color:white; font-size:0.6rem; border-radius:4px; margin-top:5px; cursor:pointer; padding:2px 6px;">KEY設定</button>
@@ -104,29 +104,33 @@
 
         const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\n【実務】1.リコス:JAN色識別・重量検品。2.ブロンコ:映像証跡。3.汎用:ABC動線。挨拶不要。常に【ガワ】と【中身】を提示しろ。`;
 
-        // 【最重要修正箇所】
-        // モデル名を models/gemini-1.5-flash に、パスを v1 に修正
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // URLの構築方法を公式の「もっとも堅牢な形式」に変更
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: SYSTEM_PROMPT + "\n\n報告: " + text }] }]
+                    contents: [{
+                        parts: [{ text: SYSTEM_PROMPT + "\n\n報告: " + text }]
+                    }]
                 })
             });
 
             const data = await response.json();
             
             if (data.error) {
-                // ここで詳細なエラーを吐かせる
                 throw new Error(`${data.error.status}: ${data.error.message}`);
             }
             
-            const aiText = data.candidates[0].content.parts[0].text;
-            loading.remove();
-            addMsg(aiText, 'ai');
+            if (data.candidates && data.candidates[0].content) {
+                const aiText = data.candidates[0].content.parts[0].text;
+                loading.remove();
+                addMsg(aiText, 'ai');
+            } else {
+                throw new Error("応答が空です。");
+            }
         } catch (error) {
             loading.innerText = "執行拒絶:\n" + error.message;
         } finally {
