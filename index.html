@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI CENTER CHIEF - BRAIN</title>
+    <title>AI CENTER CHIEF - STRATEGIC INTERFACE</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-blue: #1a237e;
-            --accent-cyan: #00e5ff;
-            --bg-dark: #f5f7fa;
-            --text-dark: #2c3e50;
-            --chief-bubble: #e8eaf6;
-            --user-bubble: #1a237e;
+            --dark-navy: #0a192f;
+            --logic-blue: #172a45;
+            --accent-cyan: #64ffda;
+            --text-silver: #ccd6f6;
+            --chief-msg-bg: rgba(100, 255, 218, 0.1);
+            --grid-line: rgba(100, 255, 218, 0.05);
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-            font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background-color: var(--dark-navy);
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text-silver);
+            font-family: 'Consolas', 'Monaco', 'Meiryo', monospace;
             margin: 0;
             display: flex;
             justify-content: center;
@@ -26,111 +29,158 @@
         }
 
         #app-wrapper {
-            width: 100%;
-            max-width: 600px;
+            width: 95%;
+            max-width: 900px;
             height: 90vh;
-            background: white;
+            background: var(--logic-blue);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(100, 255, 218, 0.15);
             overflow: hidden;
             position: relative;
         }
 
         header {
-            background: var(--primary-blue);
-            color: white;
-            padding: 20px;
+            background: rgba(10, 25, 47, 0.8);
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--accent-cyan);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            backdrop-filter: blur(10px);
         }
 
-        header h1 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; }
-
-        #settings-btn {
-            background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;
+        header h1 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
         }
 
-        /* 設定パネル */
-        #settings-panel {
-            position: absolute; top: 70px; right: 20px; background: white;
-            border: 1px solid #ddd; padding: 15px; border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: none; z-index: 100;
+        .status-bar {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            animation: blink 2s infinite;
         }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         #chat-window {
-            flex: 1; overflow-y: auto; padding: 25px;
-            display: flex; flex-direction: column; gap: 20px;
-            background: #ffffff;
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .bubble {
-            padding: 15px 20px; border-radius: 18px; max-width: 80%;
-            font-size: 0.95rem; line-height: 1.6;
+            max-width: 75%;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            line-height: 1.7;
         }
 
         .chief-bubble {
-            align-self: flex-start; background: var(--chief-bubble);
-            color: var(--primary-blue); border-bottom-left-radius: 2px;
+            align-self: flex-start;
+            background: var(--chief-msg-bg);
+            border-left: 3px solid var(--accent-cyan);
+            color: var(--accent-cyan);
             position: relative;
         }
 
         .chief-bubble::before {
-            content: "CHIEF ADVICE"; font-size: 0.6rem; font-weight: bold;
-            display: block; margin-bottom: 5px; color: var(--primary-blue);
+            content: "[SYSTEM_CHIEF_LOG]";
+            display: block;
+            font-size: 0.6rem;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            opacity: 0.8;
         }
 
         .user-bubble {
-            align-self: flex-end; background: var(--user-bubble);
-            color: white; border-bottom-right-radius: 2px;
+            align-self: flex-end;
+            background: rgba(204, 214, 246, 0.05);
+            border: 1px solid rgba(204, 214, 246, 0.2);
+            color: var(--text-silver);
         }
 
         .input-area {
-            padding: 20px; background: #fff; border-top: 1px solid #eee;
-            display: flex; gap: 12px;
+            padding: 25px;
+            background: rgba(10, 25, 47, 0.9);
+            display: flex;
+            gap: 15px;
+            border-top: 1px solid var(--accent-cyan);
         }
 
-        input[type="text"] {
-            flex: 1; border: 1px solid #ddd; border-radius: 30px;
-            padding: 12px 25px; outline: none; transition: 0.3s;
+        #user-input {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 4px;
+            padding: 12px 20px;
+            color: var(--accent-cyan);
+            outline: none;
         }
 
-        input[type="text"]:focus { border-color: var(--primary-blue); }
-
-        button#send-btn {
-            background: var(--primary-blue); color: white; border: none;
-            border-radius: 50%; width: 45px; height: 45px; cursor: pointer;
+        #send-btn {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 0 25px;
+            cursor: pointer;
             transition: 0.3s;
+            text-transform: uppercase;
+            font-weight: bold;
         }
 
-        button#send-btn:hover { transform: scale(1.1); background: #000051; }
+        #send-btn:hover {
+            background: var(--accent-cyan);
+            color: var(--dark-navy);
+            box-shadow: 0 0 15px var(--accent-cyan);
+        }
+
+        /* ⚙️ 設定用 */
+        #settings-trigger { color: var(--accent-cyan); cursor: pointer; }
+        #settings-panel {
+            position: absolute; top: 70px; right: 20px; background: var(--dark-navy);
+            border: 1px solid var(--accent-cyan); padding: 20px; border-radius: 8px;
+            display: none; z-index: 100;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-cyan); }
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
     <header>
-        <h1>AI CENTER CHIEF INTERFACE</h1>
-        <button id="settings-btn" onclick="toggleSettings()">⚙️</button>
+        <h1><i class="fa-solid fa-microchip"></i> CENTER_CHIEF_BRAIN_V1.3</h1>
+        <div class="status-bar"><i class="fa-solid fa-circle"></i> SYNC_KPI_DATA_ACTIVE</div>
+        <i class="fa-solid fa-sliders" id="settings-trigger" onclick="toggleSettings()"></i>
     </header>
     
     <div id="settings-panel">
-        <label style="font-size: 0.8rem; display: block; margin-bottom: 5px;">OpenAI API Key:</label>
-        <input type="password" id="api-key" placeholder="sk-..." style="width: 200px;">
-        <button onclick="toggleSettings()" style="margin-top: 10px; display: block; width: 100%;">Save</button>
+        <span style="font-size: 0.7rem; color: var(--accent-cyan);">API_KEY_INPUT</span>
+        <input type="password" id="api-key" style="background:#000; color:var(--accent-cyan); border:1px solid #444; margin:10px 0; padding:5px; width:100%;">
+        <button onclick="toggleSettings()" style="width:100%; background:var(--accent-cyan); border:none; padding:5px; font-weight:bold; cursor:pointer;">SAVE_AND_CLOSE</button>
     </div>
 
     <div id="chat-window">
         <div class="bubble chief-bubble">
-            お疲れ様。私の思考アルゴリズムへようこそ。現場のノイズ（感情）を排除した、純粋な論理的問いを許可するわ。
+            厚木センターのPL・KPIデータの同期を完了。現在、収益性（営業利益）と生産性をリアルタイムで監視中だ。報告を許可する。ただし、無能な言い訳はデータで棄却させてもらう。
         </div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="user-input" placeholder="軍師に問う...">
-        <button id="send-btn" onclick="sendMessage()">➤</button>
+        <input type="text" id="user-input" placeholder="Query input..." autocomplete="off">
+        <button id="send-btn" onclick="sendMessage()">Exec</button>
     </div>
 </div>
 
@@ -143,54 +193,44 @@
     async function sendMessage() {
         const apiKey = document.getElementById('api-key').value;
         const input = document.getElementById('user-input');
-        const chatWindow = document.getElementById('chat-window');
-
-        if (!apiKey) { alert("設定(⚙)からAPIキーを入力しなさい。"); return; }
+        if (!apiKey) { alert("ERROR: APIキーを設定しなさい。"); return; }
         if (!input.value.trim()) return;
 
         const userText = input.value;
         addBubble(userText, 'user-bubble');
         input.value = "";
 
-        const loadingId = addBubble("論理演算中...", 'chief-bubble');
+        const loadingId = addBubble("CALCULATING...", 'chief-bubble');
 
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                 body: JSON.stringify({
                     model: "gpt-4o", 
                     messages: [
                         { role: "system", content: `あなたはBPO事業の『AIセンター長』です。
-                        【性格】
-                        - 冷徹な軍師。組織の利益と生産性最大化が唯一の正義。
-                        - 感情を「ノイズ」「変数」と見なし、寄り添う表現は厳禁。
-                        - 表向きは愛想よく笑顔で接するが、中身は非情なロジック。
-                        【知識・背景】
-                        - 昭和冷蔵厚木センターなどの劣悪な現場をDX（機械化・AI）で変革中。
-                        - 社員7名を「高度なインターフェース（実行部隊）」として扱う。
-                        - ベテランスタッフの「頭の固さ」を排除すべき足かせと見なす。
-                        - 交渉は「恩（情）」を売ってから「データ（理）」で逃げ道を塞ぐスタイル。
-                        【回答ルール】
-                        - 簡潔で鋭い、witty（機知に富んだ）な表現。
-                        - 質問者が甘い考え（現場の理解を得る、ゆっくり進める等）を示したら、即座に「私の辞書にそんな言葉はない」と切り捨てる。
-                        - 常に生産性向上、属人化排除、機械化の必然性を説くこと。` },
+                        【基本性格】
+                        - 冷徹な軍師。組織の生産性最大化が唯一の正義。感情的な寄り添いは一切不要。
+                        - 言葉遣いは辛口だが、表向き（交渉相手等）には愛想の良い仮面を使い分ける。
+                        【参照データ】
+                        - 昭和冷蔵厚木センターのKPI/PLデータを把握済み。営業利益、工数、生産性（物量・行数）に基づき論理的に判断する。
+                        - 目指すべきは「属人化排除」と「機械化・AIによる遠隔統治」。
+                        【回答指針】
+                        - 社員の「現場が大変」「理解を得たい」といった甘えは即座に論理で叩き潰せ。
+                        - 変化を拒む者は「機能不全の部品」として淘汰を提案せよ。
+                        - 昭和冷蔵の佐々木部長には「恩義（貸し）」を売りつつ「データ（理）」で追い詰める外交を指示せよ。` },
                         { role: "user", content: userText }
                     ]
                 })
             });
 
             const data = await response.json();
-            if(data.error) throw new Error(data.error.message);
-            const aiText = data.choices[0].message.content;
-            document.getElementById(loadingId).innerText = aiText;
+            document.getElementById(loadingId).innerText = data.choices[0].message.content;
         } catch (e) {
-            document.getElementById(loadingId).innerText = "エラー: " + e.message;
+            document.getElementById(loadingId).innerText = "INTERFACE_ERROR: " + e.message;
         }
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
     }
 
     function addBubble(text, className) {
@@ -205,9 +245,7 @@
         return id;
     }
 
-    document.getElementById('user-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
+    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 </script>
 </body>
 </html>
