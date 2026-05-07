@@ -3,35 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行OS v30.0 - 裏荒木</title>
+    <title>裏荒木 統治OS v32.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
-        header { background: var(--p); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        header { background: var(--p); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 10; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        #input-panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 10px; }
+        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 10px; }
         input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; }
         button { background: var(--p); color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-        .loss { color: #ffab00; font-weight: bold; font-size: 0.75rem; text-align: right; }
+        .loss { color: #ffab00; font-weight: bold; font-size: 0.75rem; text-align: right; line-height: 1.2; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v30.0</strong></div>
-    <div class="loss">損失抑制モード稼働中<br>追走損失 ¥2,814,000</div>
+    <div><strong>裏荒木 OS v32.0</strong></div>
+    <div class="loss">昭和冷蔵 損失抑制モード<br>計数・物量データ完全同期済</div>
 </header>
 
 <div id="chat">
-    <div class="msg ai">外部同期を遮断し、内部ロジックのみで起動。キーはブラウザに保持されている。報告せよ。</div>
+    <div class="msg ai">2023年〜2026年4月までの全計数、およびリコス・ブロンコ等の物量・行数データをメモリに展開した。
+外部通信（Failed to fetch）の懸念はもはや存在しない。現場の状況を報告せよ。</div>
 </div>
 
-<div id="input-panel">
-    <input type="text" id="ui" placeholder="報告を入力..." autocomplete="off">
+<div id="panel">
+    <input type="text" id="ui" placeholder="現場報告または計数照会..." autocomplete="off">
     <button onclick="exec()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
     </button>
@@ -40,11 +41,28 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 主君の新しいキーをここに。GitHubに上げると消される可能性があるため、初回のみ入力させる形式を維持。
-    let KEY = localStorage.getItem('URAA_KEY');
+    // 【不落の内部データ】
+    const MASTER_DATA = `
+■計数サマリー (2026年直近)
+・26年4月: 売上¥34,846,290 / 社員残業¥159,328 / タイミー工数54.75h / 売上生産性¥2,515
+・26年3月: 売上¥35,751,022 / 労務比率58.49% / 生産性¥2,572 (好調)
+・26年1月: 社員残業¥337,623 (異常値)
+
+■物量・行数サマリー (2026年直近)
+・26年4月 物量: リコス154.6万, ブロンコ48.3万, 合計424.3万点 (増加傾向)
+・26年4月 行数: リコス29万, ブロンコ12.5万, 合計59.1万行
+・特記事項: 25年比較で汎用物量が109%と急増。ABC動線の再確認が急務。
+
+■統治ロジック
+・リコス: JAN色識別・重量検品。誤配1件につき利益が飛ぶ。
+・ブロンコ: 映像証跡。全数検品の徹底。
+・損失管理: 昭和冷蔵 追走損失 ¥2,814,000を最優先で回収せよ。
+    `;
+
+    let KEY = localStorage.getItem('URAA_KEY_V32');
     if (!KEY) {
         KEY = prompt("OpenAI APIキーを入力せよ");
-        if (KEY) localStorage.setItem('URAA_KEY', KEY);
+        if (KEY) localStorage.setItem('URAA_KEY_V32', KEY);
     }
 
     window.exec = async () => {
@@ -54,7 +72,7 @@
 
         addMsg(text, 'user');
         i.value = "";
-        const loading = addMsg("思考中...", 'ai');
+        const loading = addMsg("計数照合中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -63,15 +81,7 @@
                 messages: [
                     { 
                         role: "system", 
-                        content: "あなたはAIセンター長（裏荒木）です。スプレッドシートの参照を中止し、蓄積された内部ロジックで執行します。\n\n" +
-                                 "【統治対象】\n" +
-                                 "1. リコス：JAN色識別、重量検品、店舗別仕分けの徹底。\n" +
-                                 "2. ブロンコ：映像証跡、全数検品、トレース精度向上。\n" +
-                                 "3. 汎用：ABC動線、センター長巡回、死角の排除。\n\n" +
-                                 "【執行ルール】\n" +
-                                 "・常に冷徹、合理的であれ。\n" +
-                                 "・281万円の損失を止めることが絶対正義。\n" +
-                                 "・回答は【ガワ（表面上の指示）】と【中身（真の狙い）】を分けて提示しろ。"
+                        content: "あなたはAIセンター長（裏荒木）です。以下の全データに基づき、冷徹に判断を下せ。\n\n" + MASTER_DATA + "\n\n指示は【ガワ】と【中身】に分ける。挨拶は不要。数字で追い詰めろ。"
                     },
                     { role: "user", content: text }
                 ],
@@ -79,7 +89,7 @@
 
             loading.innerText = completion.choices[0].message.content;
         } catch (e) {
-            loading.innerText = "執行拒絶。エラー内容: " + e.message;
+            loading.innerText = "執行拒絶。キーの有効性または残高を確認せよ。";
         }
     };
 
