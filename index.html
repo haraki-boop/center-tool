@@ -2,103 +2,176 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIセンター長（裏荒木）- 執行OS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CENTER CHIEF - BRAIN INTERFACE</title>
     <style>
-        :root { --primary: #1a237e; --accent: #ff1744; --bg: #f0f2f5; }
-        * { box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
-        header { background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-        #chat-window { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
-        .ai { align-self: flex-start; background: white; border-left: 5px solid var(--accent); color: #1a1a1a; }
-        .user { align-self: flex-end; background: var(--primary); color: white; }
-        #input-panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 10px; flex-shrink: 0; }
-        input { flex-grow: 1; padding: 12px 18px; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; background: #f8f9fa; }
-        button { background: var(--primary); color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-        .loss-text { color: #ffab00; font-weight: bold; font-size: 0.75rem; text-align: right; line-height: 1.2; }
+        :root {
+            --bg-color: #0a0a0a;
+            --panel-color: #1a1a1a;
+            --accent-color: #00ff41; /* 軍師の正義：生産性の緑 */
+            --text-color: #e0e0e0;
+            --border-glow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: var(--panel-color);
+            border: 1px solid #333;
+            box-shadow: var(--border-glow);
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+        }
+
+        header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            background: #111;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            text-transform: uppercase;
+        }
+
+        #status-indicator {
+            font-size: 0.8rem;
+            color: var(--accent-color);
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: linear-gradient(180deg, #151515 0%, #1a1a1a 100%);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            max-width: 85%;
+            line-height: 1.6;
+        }
+
+        .chief-msg {
+            color: var(--accent-color);
+            border-left: 2px solid var(--accent-color);
+            padding-left: 15px;
+        }
+
+        .chief-msg::before {
+            content: "CHIEF > ";
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.7rem;
+        }
+
+        .user-input-area {
+            padding: 20px;
+            background: #111;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #000;
+            border: 1px solid #444;
+            color: var(--accent-color);
+            padding: 12px;
+            outline: none;
+            font-family: monospace;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 0 20px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #00cc33;
+            box-shadow: 0 0 15px var(--accent-color);
+        }
+
+        /* スクロールバーのカスタマイズ */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; }
     </style>
 </head>
 <body>
 
-<header>
-    <div><small>最終執行OS v26.0</small><br><strong>裏荒木</strong></div>
-    <div class="loss-text">昭和冷蔵 追走損失<br>¥2,814,000</div>
-</header>
+<div id="app-container">
+    <header>
+        <h1>AI Center Chief Brain v1.0</h1>
+        <div id="status-indicator">● ONLINE | Logic Only</div>
+    </header>
 
-<div id="chat-window">
-    <div class="msg ai" id="status-msg">最新KPI同期中...</div>
-</div>
+    <div id="chat-window">
+        <div class="message chief-msg">
+            待機していた。報告しろ。現場の「感情」は切り捨て、論理的な変数のみを入力せよ。
+        </div>
+    </div>
 
-<div id="input-panel">
-    <input type="text" id="userInput" placeholder="報告せよ..." autocomplete="off">
-    <button onclick="callAI()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-    </button>
+    <div class="user-input-area">
+        <input type="text" id="user-input" placeholder="Query to Brain..." autocomplete="off">
+        <button onclick="sendMessage()">Execute</button>
+    </div>
 </div>
 
 <script>
-    // 主君が作成した最強の専用URL
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbze6NAQ_iNVl8HKf0oUM69HU3I3fLWIfbTNj15M3Ki6oK3kaKKaNDDM8YVwSFWbdcQl/exec";
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbegZyPNz_DC8cQXxGmWEgxywH8MKptmSIG0TK315W7G17yZwh-M1lmiJFRbIbH-N2zwYmw62iSHxH/pub?output=csv';
-    
-    let LIVE_DATA = "同期待機中";
-
-    // スプレッドシート同期
-    async function syncData() {
-        try {
-            const res = await fetch(CSV_URL);
-            LIVE_DATA = await res.text();
-            document.getElementById('status-msg').innerText = "最新KPIを同期。執行準備完了。";
-        } catch (e) {
-            document.getElementById('status-msg').innerText = "数値同期エラー。論理のみで執行。";
-        }
-    }
-    syncData();
-
-    async function callAI() {
-        const input = document.getElementById('userInput');
-        const text = input.value.trim();
-        if (!text) return;
-
-        addMsg(text, 'user');
-        input.value = "";
+    function sendMessage() {
+        const input = document.getElementById('user-input');
+        const chatWindow = document.getElementById('chat-window');
         
-        const loading = document.createElement('div');
-        loading.className = 'msg ai'; loading.innerText = "思考中...";
-        document.getElementById('chat-window').appendChild(loading);
-        scrollToBottom();
+        if (input.value.trim() === "") return;
 
-        const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\n常に【ガワ】と【中身】を提示しろ。281万円を止めることが正義だ。`;
+        // 本来はここにNotebookLMやAPIとの連携ロジックを配備する
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message';
+        userMsg.style.textAlign = 'right';
+        userMsg.style.marginLeft = 'auto';
+        userMsg.innerHTML = `<span style="color:#888; font-size:0.7rem; display:block;">STAFF ></span>${input.value}`;
+        chatWindow.appendChild(userMsg);
 
-        try {
-            // GAS経由でOpenAIを叩く（これがCORSエラーを完全に葬る魔法だ）
-            const response = await fetch(GAS_URL, {
-                method: 'POST',
-                // ブラウザの検閲を避けるため、敢えてtext/plainで送り、GAS側でJSON解析させる
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ 
-                    messages: [
-                        { role: "system", content: SYSTEM_PROMPT },
-                        { role: "user", content: text }
-                    ]
-                })
-            });
-
-            const data = await response.json();
-            loading.remove();
-
-            if (data.choices && data.choices[0]) {
-                addMsg(data.choices[0].message.content, 'ai');
-            } else {
-                addMsg("【中継失敗】GASの応答が不正だ。APIキーかデプロイ設定を確認せよ。", 'ai');
-            }
-        } catch (error) {
-            loading.innerText = "【通信障害】GASのURLが正しいか、設定が「全員(Anyone)」になっているか確認せよ。";
-        }
-        scrollToBottom();
+        input.value = "";
+        chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    function addMsg(text, side) {
-        const win = document.getElementById('chat-window');
-        const div = document.createElement('div
+    // Enterキーでも送信可能にする
+    document.getElementById('user-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+</html>
