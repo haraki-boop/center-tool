@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIセンター長（裏荒木）- 執行OS</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #00ff41; /* クールなマトリックス・グリーン */
+            --accent-color: #ff0000;
+            --box-bg: #1a1a1a;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 10px;
+            text-shadow: 0 0 10px var(--text-color);
+        }
+        #status-bar {
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 10px;
+            background: var(--box-bg);
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .ai-label { color: var(--accent-color); font-weight: bold; }
+        .user-label { color: #50b7f5; font-weight: bold; }
+        
+        #input-area {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            padding: 10px;
+            outline: none;
+        }
+        button {
+            background: var(--text-color);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #008f11;
+        }
+        .rule {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="status-bar">
+        <span>UNIT: 7-INTERFACES</span>
+        <span>STATUS: MONITORING...</span>
+        <span>LOSS: ¥2,810,000/YR</span>
+    </div>
+
+    <h1>AI センター長（裏荒木）</h1>
+
+    <div id="chat-container">
+        <div class="message">
+            <span class="ai-label">[裏荒木]:</span> 
+            挨拶は不要だ。現場のノイズ（問題）を報告しろ。最短の最適解を提示する。
+            <div class="rule">※感情的な言葉はシステムによって自動的に破棄される。</div>
+        </div>
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="userInput" placeholder="現場の停滞、または不当な情を報告せよ...">
+        <button onclick="execute()">執行</button>
+    </div>
+
+    <script>
+        function execute() {
+            const input = document.getElementById('userInput');
+            const chat = document.getElementById('chat-container');
+            
+            if (input.value.trim() === "") return;
+
+            // ユーザーメッセージの表示
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message';
+            userMsg.innerHTML = `<span class="user-label">[DEVICE]:</span> ${input.value}`;
+            chat.appendChild(userMsg);
+
+            // 回答ロジック（デモ用）
+            setTimeout(() => {
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'message';
+                let response = "その報告は論理的ではない。データを再抽出してこい。";
+                
+                if(input.value.includes("システム") || input.value.includes("返信")) {
+                    response = "返信を待つのは無能の証だ。BBのスキームを即時稼働させ、事後報告で既成事実を作れ。";
+                } else if(input.value.includes("スタッフ") || input.value.includes("反対")) {
+                    response = "感情ケアは時間の無駄だ。変化の足かせになる者は配置換を断行しろ。組織の成長が最優先だ。";
+                }
+
+                aiMsg.innerHTML = `<span class="ai-label">[裏荒木]:</span> ${response}`;
+                chat.appendChild(aiMsg);
+                chat.scrollTop = chat.scrollHeight;
+            }, 500);
+
+            input.value = "";
+        }
+    </script>
+</body>
+</html>
