@@ -3,137 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIセンター長（裏荒木）- 執行OS</title>
+    <title>昭和冷蔵DX推進サポート - AIセンター長</title>
     <style>
         :root {
-            --bg-color: #0a0a0a;
-            --text-color: #00ff41; /* クールなマトリックス・グリーン */
-            --accent-color: #ff0000;
-            --box-bg: #1a1a1a;
+            --primary-color: #003366; /* 落ち着いたネイビー */
+            --bg-color: #f4f7f9;
+            --user-msg: #e1f5fe;
+            --ai-msg: #ffffff;
         }
         body {
             background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
+            color: #333;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
             margin: 0;
-            padding: 20px;
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-        h1 {
-            font-size: 1.5rem;
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
             text-align: center;
-            border-bottom: 2px solid var(--text-color);
-            padding-bottom: 10px;
-            text-shadow: 0 0 10px var(--text-color);
-        }
-        #status-bar {
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         #chat-container {
             flex-grow: 1;
             overflow-y: auto;
-            border: 1px solid #333;
-            padding: 10px;
-            background: var(--box-bg);
-            margin-bottom: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        .message {
-            margin-bottom: 15px;
-            line-height: 1.4;
+        .bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .ai-label { color: var(--accent-color); font-weight: bold; }
-        .user-label { color: #50b7f5; font-weight: bold; }
+        .ai { align-self: flex-start; background-color: var(--ai-msg); border: 1px solid #ddd; }
+        .user { align-self: flex-end; background-color: var(--user-msg); }
         
+        #quick-actions {
+            padding: 10px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+        .btn-action {
+            background: #fff;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-action:hover { background: var(--primary-color); color: white; }
+
         #input-area {
             display: flex;
+            padding: 15px;
+            background: white;
             gap: 10px;
         }
         input[type="text"] {
             flex-grow: 1;
-            background: #000;
-            border: 1px solid var(--text-color);
-            color: var(--text-color);
+            border: 1px solid #ccc;
+            border-radius: 8px;
             padding: 10px;
             outline: none;
         }
-        button {
-            background: var(--text-color);
-            color: #000;
+        button#send {
+            background: var(--primary-color);
+            color: white;
             border: none;
             padding: 10px 20px;
+            border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-        }
-        button:hover {
-            background: #008f11;
-        }
-        .rule {
-            font-size: 0.7rem;
-            color: #888;
-            margin-top: 5px;
         }
     </style>
 </head>
 <body>
 
-    <div id="status-bar">
-        <span>UNIT: 7-INTERFACES</span>
-        <span>STATUS: MONITORING...</span>
-        <span>LOSS: ¥2,810,000/YR</span>
+<header>
+    <strong>昭和冷蔵DX推進サポート</strong>
+</header>
+
+<div id="chat-container">
+    <div class="bubble ai">
+        お疲れ様です。センター長の荒木です。<br>
+        現場の課題や、システム・交渉の停滞について相談してください。最適な解決策を提示します。
     </div>
+</div>
 
-    <h1>AI センター長（裏荒木）</h1>
+<div id="quick-actions">
+    <button class="btn-action" onclick="ask('システム担当者から返信が来ない')">システム部からの返信待機</button>
+    <button class="btn-action" onclick="ask('現場スタッフが変化を嫌がっている')">スタッフの教育・意識改革</button>
+    <button class="btn-action" onclick="ask('損失コストを値上げ交渉に使いたい')">追走費281万の活用法</button>
+    <button class="btn-action" onclick="ask('BBのアプリ導入を急ぎたい')">BB部門の先行導入</button>
+</div>
 
-    <div id="chat-container">
-        <div class="message">
-            <span class="ai-label">[裏荒木]:</span> 
-            挨拶は不要だ。現場のノイズ（問題）を報告しろ。最短の最適解を提示する。
-            <div class="rule">※感情的な言葉はシステムによって自動的に破棄される。</div>
-        </div>
-    </div>
+<div id="input-area">
+    <input type="text" id="userInput" placeholder="質問を入力してください...">
+    <button id="send" onclick="execute()">送信</button>
+</div>
 
-    <div id="input-area">
-        <input type="text" id="userInput" placeholder="現場の停滞、または不当な情を報告せよ...">
-        <button onclick="execute()">執行</button>
-    </div>
+<script>
+    function addMessage(text, side) {
+        const container = document.getElementById('chat-container');
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${side}`;
+        bubble.innerHTML = text;
+        container.appendChild(bubble);
+        container.scrollTop = container.scrollHeight;
+    }
 
-    <script>
-        function execute() {
-            const input = document.getElementById('userInput');
-            const chat = document.getElementById('chat-container');
+    function ask(query) {
+        addMessage(query, 'user');
+        process(query);
+    }
+
+    function execute() {
+        const input = document.getElementById('userInput');
+        if (input.value.trim() === "") return;
+        ask(input.value);
+        input.value = "";
+    }
+
+    function process(text) {
+        setTimeout(() => {
+            let response = "その件については、まず客観的なデータを揃えましょう。具体的な状況を詳しく教えてください。";
             
-            if (input.value.trim() === "") return;
+            if(text.includes("システム") || text.includes("返信")) {
+                response = "<strong>【回答】</strong> 小笠原様の多忙を考慮し、御社の改修工数を一切奪わない「BBデータ抜き取りスキーム」での先行稼働を提案してください。関係性を保ちつつ、既成事実を積み上げるのが最短ルートです。";
+            } else if(text.includes("スタッフ") || text.includes("変化")) {
+                response = "<strong>【回答】</strong> 感情的な反発には「メリット」で返します。機械化がスタッフを『ミスの責任』から解放することを説き、それでも困難な場合は配置の適正化を検討してください。";
+            } else if(text.includes("281万") || text.includes("コスト")) {
+                response = "<strong>【回答】</strong> 281万円の追走費は、御社のブランドを守るための『投資の遅れ』による損失です。これを共通の課題として提示し、DX化によるコスト削減をセットで値上げの受理へ繋げましょう。";
+            } else if(text.includes("BB")) {
+                response = "<strong>【回答】</strong> BBは改修なしでデータ取得が可能です。まずはここで『事故ゼロ』の成功事例を1ヶ月で作り、それを武器に汎用カテゴリーのバッチ改修を認めさせます。";
+            }
 
-            // ユーザーメッセージの表示
-            const userMsg = document.createElement('div');
-            userMsg.className = 'message';
-            userMsg.innerHTML = `<span class="user-label">[DEVICE]:</span> ${input.value}`;
-            chat.appendChild(userMsg);
-
-            // 回答ロジック（デモ用）
-            setTimeout(() => {
-                const aiMsg = document.createElement('div');
-                aiMsg.className = 'message';
-                let response = "その報告は論理的ではない。データを再抽出してこい。";
-                
-                if(input.value.includes("システム") || input.value.includes("返信")) {
-                    response = "返信を待つのは無能の証だ。BBのスキームを即時稼働させ、事後報告で既成事実を作れ。";
-                } else if(input.value.includes("スタッフ") || input.value.includes("反対")) {
-                    response = "感情ケアは時間の無駄だ。変化の足かせになる者は配置換を断行しろ。組織の成長が最優先だ。";
-                }
-
-                aiMsg.innerHTML = `<span class="ai-label">[裏荒木]:</span> ${response}`;
-                chat.appendChild(aiMsg);
-                chat.scrollTop = chat.scrollHeight;
-            }, 500);
-
-            input.value = "";
-        }
-    </script>
+            addMessage(response, 'ai');
+        }, 600);
+    }
+</script>
 </body>
 </html>
