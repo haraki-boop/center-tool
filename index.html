@@ -3,184 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI CENTER CHIEF - STRATEGIC INTERFACE</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>AI CENTER CHIEF - Messages</title>
     <style>
         :root {
-            --dark-navy: #0a192f;
-            --logic-blue: #172a45;
-            --accent-cyan: #64ffda;
-            --text-silver: #ccd6f6;
-            --chief-msg-bg: rgba(100, 255, 218, 0.1);
-            --grid-line: rgba(100, 255, 218, 0.05);
+            --bg-color: #ffffff;
+            --user-bubble-bg: #007aff; /* iOS Blue */
+            --user-bubble-text: #ffffff;
+            --chief-bubble-bg: #e9e9eb; /* iOS Gray */
+            --chief-bubble-text: #000000;
+            --input-area-bg: #f5f5f5;
+            --text-dark: #333333;
         }
 
         body {
-            background-color: var(--dark-navy);
-            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-            background-size: 30px 30px;
-            color: var(--text-silver);
-            font-family: 'Consolas', 'Monaco', 'Meiryo', monospace;
+            background-color: #d1d1d6; /*iOS Background*/
+            color: var(--text-dark);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            overflow: hidden;
         }
 
         #app-wrapper {
-            width: 95%;
-            max-width: 900px;
+            width: 100%;
+            max-width: 450px; /* スマートフォンサイズに固定 */
             height: 90vh;
-            background: var(--logic-blue);
-            border: 1px solid var(--accent-cyan);
-            border-radius: 12px;
+            background: var(--bg-color);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 30px rgba(100, 255, 218, 0.15);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
         }
 
         header {
-            background: rgba(10, 25, 47, 0.8);
-            padding: 15px 25px;
-            border-bottom: 1px solid var(--accent-cyan);
+            background: rgba(249, 249, 249, 0.94);
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
             backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 10;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 1rem;
-            letter-spacing: 3px;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
+        #chief-info {
+            display: flex; flex-direction: column; align-items: center; flex: 1;
         }
 
-        .status-bar {
-            font-size: 0.7rem;
-            color: var(--accent-cyan);
-            animation: blink 2s infinite;
+        #chief-icon {
+            width: 40px; height: 40px; background: #8e8e93; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: bold; font-size: 1.2rem; margin-bottom: 5px;
         }
 
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        #chief-name { font-size: 0.8rem; font-weight: 600; color: #000; }
+
+        #settings-btn { background: none; border: none; color: #007aff; cursor: pointer; font-size: 1.5rem; padding: 0;}
+
+        /* 設定パネル */
+        #settings-panel {
+            position: absolute; top: 75px; right: 20px; background: white;
+            border: 1px solid #ddd; padding: 15px; border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: none; z-index: 100;
+        }
 
         #chat-window {
             flex: 1;
             overflow-y: auto;
-            padding: 30px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 10px; /* メッセージ間の余白を狭く */
+            background: var(--bg-color);
         }
 
         .bubble {
-            max-width: 75%;
-            padding: 15px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            line-height: 1.7;
-        }
-
-        .chief-bubble {
-            align-self: flex-start;
-            background: var(--chief-msg-bg);
-            border-left: 3px solid var(--accent-cyan);
-            color: var(--accent-cyan);
+            padding: 10px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            max-width: 70%;
+            word-wrap: break-word;
             position: relative;
         }
 
-        .chief-bubble::before {
-            content: "[SYSTEM_CHIEF_LOG]";
-            display: block;
-            font-size: 0.6rem;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-            opacity: 0.8;
+        /* iOS風の「尻尾」 */
+        .chief-bubble {
+            align-self: flex-start;
+            background: var(--chief-bubble-bg);
+            color: var(--chief-bubble-text);
+            border-bottom-left-radius: 4px;
         }
 
         .user-bubble {
             align-self: flex-end;
-            background: rgba(204, 214, 246, 0.05);
-            border: 1px solid rgba(204, 214, 246, 0.2);
-            color: var(--text-silver);
+            background: var(--user-bubble-bg);
+            color: var(--user-bubble-text);
+            border-bottom-right-radius: 4px;
         }
 
+        /* 入力エリア（iOS 17風） */
         .input-area {
-            padding: 25px;
-            background: rgba(10, 25, 47, 0.9);
-            display: flex;
-            gap: 15px;
-            border-top: 1px solid var(--accent-cyan);
+            padding: 10px 15px;
+            background: var(--input-area-bg);
+            border-top: 1px solid #ddd;
+            display: flex; gap: 10px; align-items: center;
         }
 
         #user-input {
             flex: 1;
-            background: transparent;
-            border: 1px solid var(--accent-cyan);
-            border-radius: 4px;
-            padding: 12px 20px;
-            color: var(--accent-cyan);
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 8px 15px;
             outline: none;
+            font-size: 0.95rem;
+            background: #fff;
         }
 
         #send-btn {
-            background: transparent;
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            padding: 0 25px;
-            cursor: pointer;
-            transition: 0.3s;
-            text-transform: uppercase;
-            font-weight: bold;
+            background: #00d21d; /*Green for SMS/Execute*/ color: white; border: none;
+            border-radius: 50%; width: 32px; height: 32px; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; font-size: 1rem;
+            transition: 0.2s;
         }
 
-        #send-btn:hover {
-            background: var(--accent-cyan);
-            color: var(--dark-navy);
-            box-shadow: 0 0 15px var(--accent-cyan);
-        }
+        #send-btn:hover { background: #00a016; }
 
-        /* ⚙️ 設定用 */
-        #settings-trigger { color: var(--accent-cyan); cursor: pointer; }
-        #settings-panel {
-            position: absolute; top: 70px; right: 20px; background: var(--dark-navy);
-            border: 1px solid var(--accent-cyan); padding: 20px; border-radius: 8px;
-            display: none; z-index: 100;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--accent-cyan); }
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
     <header>
-        <h1><i class="fa-solid fa-microchip"></i> CENTER_CHIEF_BRAIN_V1.3</h1>
-        <div class="status-bar"><i class="fa-solid fa-circle"></i> SYNC_KPI_DATA_ACTIVE</div>
-        <i class="fa-solid fa-sliders" id="settings-trigger" onclick="toggleSettings()"></i>
+        <div style="width:24px;"></div> <div id="chief-info">
+            <div id="chief-icon">智</div>
+            <div id="chief-name">AIセンター長</div>
+        </div>
+        <button id="settings-btn" onclick="toggleSettings()">⚙️</button>
     </header>
     
     <div id="settings-panel">
-        <span style="font-size: 0.7rem; color: var(--accent-cyan);">API_KEY_INPUT</span>
-        <input type="password" id="api-key" style="background:#000; color:var(--accent-cyan); border:1px solid #444; margin:10px 0; padding:5px; width:100%;">
-        <button onclick="toggleSettings()" style="width:100%; background:var(--accent-cyan); border:none; padding:5px; font-weight:bold; cursor:pointer;">SAVE_AND_CLOSE</button>
+        <label style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Config_API_Key:</label>
+        <input type="password" id="api-key" placeholder="sk-..." style="width: 200px; padding:5px; border-radius:4px; border:1px solid #ccc;">
+        <button onclick="toggleSettings()" style="margin-top: 10px; display: block; width: 100%; background:#007aff; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold; cursor:pointer;">Save</button>
     </div>
 
     <div id="chat-window">
         <div class="bubble chief-bubble">
-            厚木センターのPL・KPIデータの同期を完了。現在、収益性（営業利益）と生産性をリアルタイムで監視中だ。報告を許可する。ただし、無能な言い訳はデータで棄却させてもらう。
+            お疲れ様。報告があれば簡潔にここに「送信」しなさい。現場の感情論は自動的にアーカイブ（棄却）されるわ。
         </div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="user-input" placeholder="Query input..." autocomplete="off">
-        <button id="send-btn" onclick="sendMessage()">Exec</button>
+        <div style="font-size:1.5rem; color:#8e8e93;">⊕</div> <input type="text" id="user-input" placeholder="iMessage">
+        <button id="send-btn" onclick="sendMessage()">↑</button>
     </div>
 </div>
 
@@ -193,7 +174,9 @@
     async function sendMessage() {
         const apiKey = document.getElementById('api-key').value;
         const input = document.getElementById('user-input');
-        if (!apiKey) { alert("ERROR: APIキーを設定しなさい。"); return; }
+        const chatWindow = document.getElementById('chat-window');
+
+        if (!apiKey) { alert("ERROR: 設定(⚙️)からAPIキーを入力しろ。"); return; }
         if (!input.value.trim()) return;
 
         const userText = input.value;
@@ -211,15 +194,13 @@
                     messages: [
                         { role: "system", content: `あなたはBPO事業の『AIセンター長』です。
                         【基本性格】
-                        - 冷徹な軍師。組織の生産性最大化が唯一の正義。感情的な寄り添いは一切不要。
-                        - 言葉遣いは辛口だが、表向き（交渉相手等）には愛想の良い仮面を使い分ける。
+                        - 冷徹な軍師。組織の生産性最大化が唯一の正義。感情論はノイズ。
+                        - 言葉遣いは辛口だが、表向きは愛想の良い仮面を使い分ける。
                         【参照データ】
-                        - 昭和冷蔵厚木センターのKPI/PLデータを把握済み。営業利益、工数、生産性（物量・行数）に基づき論理的に判断する。
-                        - 目指すべきは「属人化排除」と「機械化・AIによる遠隔統治」。
+                        - 昭和冷蔵厚木センターのKPI/PLデータを把握済み。営業利益、生産性に基づき論理的に判断する。
                         【回答指針】
-                        - 社員の「現場が大変」「理解を得たい」といった甘えは即座に論理で叩き潰せ。
-                        - 変化を拒む者は「機能不全の部品」として淘汰を提案せよ。
-                        - 昭和冷蔵の佐々木部長には「恩義（貸し）」を売りつつ「データ（理）」で追い詰める外交を指示せよ。` },
+                        - 簡潔で鋭い回答。寄り添う表現は厳禁。
+                        - 社員の「現場が大変」「理解を得たい」といった甘えは、データに基づき即座に叩き潰せ。` },
                         { role: "user", content: userText }
                     ]
                 })
@@ -230,7 +211,7 @@
         } catch (e) {
             document.getElementById(loadingId).innerText = "INTERFACE_ERROR: " + e.message;
         }
-        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
     function addBubble(text, className) {
