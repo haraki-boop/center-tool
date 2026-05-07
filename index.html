@@ -3,77 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIセンター長（裏荒木）- 統治OS</title>
+    <title>AIセンター長（裏荒木）- 執行OS</title>
     <style>
         :root { --primary: #1a237e; --accent: #ff1744; --bg: #f0f2f5; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden;
-        }
-
-        header { 
-            background: var(--primary); color: white; padding: 12px 15px; 
-            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 10;
-        }
-
-        #settings-overlay { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: rgba(0,0,0,0.9); display: none; 
-            justify-content: center; align-items: center; z-index: 1000; 
-        }
-        #settings-box { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 380px; }
-        
-        #chat-window { 
-            flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; 
-            flex-direction: column; gap: 12px; scroll-behavior: smooth;
-        }
-
-        .msg { 
-            max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; 
-            white-space: pre-wrap; word-wrap: break-word; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
+        header { background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        #chat-window { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--accent); color: #1a1a1a; }
         .user { align-self: flex-end; background: var(--primary); color: white; }
-        
-        #input-panel { 
-            background: white; padding: 10px 15px env(safe-area-inset-bottom);
-            border-top: 1px solid #ddd; display: flex; gap: 10px; flex-shrink: 0;
-        }
-
-        input { 
-            flex-grow: 1; padding: 12px 18px; border: 1px solid #ccc; border-radius: 25px; 
-            font-size: 16px; outline: none; background: #f8f9fa;
-        }
-
-        button#execBtn { 
-            background: var(--primary); color: white; border: none; width: 50px; height: 46px;
-            border-radius: 23px; cursor: pointer; display: flex;
-            justify-content: center; align-items: center;
-        }
-
+        #input-panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 10px; flex-shrink: 0; }
+        input { flex-grow: 1; padding: 12px 18px; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; background: #f8f9fa; }
+        button { background: var(--primary); color: white; border: none; width: 50px; height: 46px; border-radius: 23px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .loss-text { color: #ffab00; font-weight: bold; font-size: 0.75rem; text-align: right; line-height: 1.2; }
     </style>
 </head>
 <body>
 
-<div id="settings-overlay">
-    <div id="settings-box">
-        <h3 style="margin-top:0; color:var(--primary);">OpenAI 執行キー設定</h3>
-        <p style="font-size:0.8rem; color:#666;">sk-から始まるAPIキーを入力せよ。</p>
-        <input type="password" id="apiKeyInput" style="width: 100%; border-radius: 8px; margin-bottom: 20px; padding: 12px;" placeholder="sk-...">
-        <button onclick="saveSettings()" style="width: 100%; border-radius: 8px; padding: 14px; background: var(--primary); color: white; border: none; font-weight: bold;">保存して執行開始</button>
-    </div>
-</div>
-
 <header>
-    <div><small>統合執行OS v24.0</small><br><strong>裏荒木</strong></div>
-    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-        <div class="loss-text">昭和冷蔵 追走損失<br>¥2,814,000</div>
-        <button onclick="toggleSettings()" style="background:none; border:1px solid white; color:white; font-size:0.6rem; border-radius:4px; margin-top:5px; cursor:pointer; padding:2px 6px;">KEY変更</button>
-    </div>
+    <div><small>最終執行OS v26.0</small><br><strong>裏荒木</strong></div>
+    <div class="loss-text">昭和冷蔵 追走損失<br>¥2,814,000</div>
 </header>
 
 <div id="chat-window">
@@ -82,45 +32,31 @@
 
 <div id="input-panel">
     <input type="text" id="userInput" placeholder="報告せよ..." autocomplete="off">
-    <button id="execBtn" onclick="callAI()">
+    <button onclick="callAI()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
     </button>
 </div>
 
 <script>
-    let API_KEY = localStorage.getItem('URAA_KEY_OPENAI');
+    // 主君が作成した最強の専用URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbze6NAQ_iNVl8HKf0oUM69HU3I3fLWIfbTNj15M3Ki6oK3kaKKaNDDM8YVwSFWbdcQl/exec";
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbegZyPNz_DC8cQXxGmWEgxywH8MKptmSIG0TK315W7G17yZwh-M1lmiJFRbIbH-N2zwYmw62iSHxH/pub?output=csv';
+    
     let LIVE_DATA = "同期待機中";
 
-    if (!API_KEY) document.getElementById('settings-overlay').style.display = 'flex';
-
+    // スプレッドシート同期
     async function syncData() {
         try {
             const res = await fetch(CSV_URL);
             LIVE_DATA = await res.text();
-            document.getElementById('status-msg').innerText = "最新KPIを捕捉。執行準備完了。";
+            document.getElementById('status-msg').innerText = "最新KPIを同期。執行準備完了。";
         } catch (e) {
-            document.getElementById('status-msg').innerText = "同期失敗。論理のみで執行する。";
+            document.getElementById('status-msg').innerText = "数値同期エラー。論理のみで執行。";
         }
     }
     syncData();
 
-    function toggleSettings() {
-        const overlay = document.getElementById('settings-overlay');
-        overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
-    }
-
-    function saveSettings() {
-        const key = document.getElementById('apiKeyInput').value.trim();
-        if (key) {
-            localStorage.setItem('URAA_KEY_OPENAI', key);
-            API_KEY = key;
-            location.reload();
-        }
-    }
-
     async function callAI() {
-        if (!API_KEY) { toggleSettings(); return; }
         const input = document.getElementById('userInput');
         const text = input.value.trim();
         if (!text) return;
@@ -133,18 +69,15 @@
         document.getElementById('chat-window').appendChild(loading);
         scrollToBottom();
 
-        const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\nリコス、ブロンコ、汎用の実務ロジックに基づき、挨拶抜きで常に【ガワ】と【中身】を提示しろ。損失281万円を止めることが絶対正義だ。`;
+        const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\n常に【ガワ】と【中身】を提示しろ。281万円を止めることが正義だ。`;
 
         try {
-            // CORS回避プロキシを使用
-            const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.openai.com/v1/chat/completions'), {
+            // GAS経由でOpenAIを叩く（これがCORSエラーを完全に葬る魔法だ）
+            const response = await fetch(GAS_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
+                // ブラウザの検閲を避けるため、敢えてtext/plainで送り、GAS側でJSON解析させる
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ 
                     messages: [
                         { role: "system", content: SYSTEM_PROMPT },
                         { role: "user", content: text }
@@ -158,27 +91,14 @@
             if (data.choices && data.choices[0]) {
                 addMsg(data.choices[0].message.content, 'ai');
             } else {
-                addMsg("執行拒絶: APIキーを確認しろ。", 'ai');
+                addMsg("【中継失敗】GASの応答が不正だ。APIキーかデプロイ設定を確認せよ。", 'ai');
             }
         } catch (error) {
-            loading.innerText = "通信拒絶。プロキシ制限か、キーの残高不足の可能性がある。";
+            loading.innerText = "【通信障害】GASのURLが正しいか、設定が「全員(Anyone)」になっているか確認せよ。";
         }
         scrollToBottom();
     }
 
     function addMsg(text, side) {
         const win = document.getElementById('chat-window');
-        const div = document.createElement('div');
-        div.className = `msg ${side}`; div.innerText = text; win.appendChild(div);
-        scrollToBottom();
-    }
-
-    function scrollToBottom() {
-        const win = document.getElementById('chat-window');
-        win.scrollTop = win.scrollHeight;
-    }
-
-    document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') callAI(); });
-</script>
-</body>
-</html>
+        const div = document.createElement('div
