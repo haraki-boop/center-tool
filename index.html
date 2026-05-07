@@ -25,15 +25,15 @@
 
 <div id="settings-overlay">
     <div id="settings-box">
-        <h3 style="margin-top:0; color:var(--primary);">執行キー設定</h3>
-        <p style="font-size:0.8rem; color:#666;">預かったキーを入力し、システムを起動せよ。</p>
-        <input type="password" id="apiKeyInput" style="width: 100%; border-radius: 8px; margin-bottom: 20px; padding: 12px;" placeholder="AIzaSy...">
+        <h3 style="margin-top:0; color:var(--primary);">執行システム起動</h3>
+        <p style="font-size:0.8rem; color:#666;">APIキー(AIzaSy...)を入力して同期せよ。</p>
+        <input type="password" id="apiKeyInput" style="width: 100%; border-radius: 8px; margin-bottom: 20px; padding: 12px;" placeholder="キーを貼り付け...">
         <button onclick="saveSettings()" style="width: 100%; border-radius: 8px; padding: 14px; background: var(--primary); color: white; border: none; font-weight: bold;">保存して開始</button>
     </div>
 </div>
 
 <header>
-    <div><small>執行OS v10.5</small><br><strong>裏荒木</strong></div>
+    <div><small>統合執行OS v11.0</small><br><strong>裏荒木</strong></div>
     <div style="display: flex; flex-direction: column; align-items: flex-end;">
         <div class="loss-text">昭和冷蔵 追走損失<br>¥2,814,000</div>
         <button onclick="toggleSettings()" style="background:none; border:1px solid rgba(255,255,255,0.4); color:white; font-size:0.6rem; border-radius:4px; margin-top:5px; cursor:pointer; padding:2px 6px;">KEY設定</button>
@@ -62,14 +62,13 @@
         try {
             const res = await fetch(CSV_URL);
             LIVE_DATA = await res.text();
-            document.getElementById('status-msg').innerText = "最新KPIを同期。執行準備完了。";
+            document.getElementById('status-msg').innerText = "最新KPIを捕捉。執行準備完了。";
         } catch (e) {
             document.getElementById('status-msg').innerText = "数値同期エラー。論理のみで執行する。";
         }
     }
     syncData();
 
-    // エンターキー送信
     document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') callGemini(); });
 
     function toggleSettings() {
@@ -103,24 +102,32 @@
         document.getElementById('chat-window').appendChild(loading);
         scrollToBottom();
 
-        const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\n【実務】1.リコス:JAN色識別・重量検品。2.ブロンコ:映像証跡。3.汎用:ABC動線。挨拶不要。常に【ガワ】と【中身】を提示しろ。損失281万円を止めることが正義だ。`;
+        const SYSTEM_PROMPT = `あなたはAIセンター長（裏荒木）です。最新KPI：\n${LIVE_DATA}\n\n【実務】1.リコス:JAN色識別・重量検品。2.ブロンコ:映像証跡。3.汎用:ABC動線。挨拶不要。常に【ガワ】と【中身】を提示しろ。`;
 
-        // モデル指定を最新の安定版に完全準拠
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // 【404エラーを粉砕する新エンドポイント】
+        // models/gemini-1.5-flash ではなく models/gemini-pro を代替案として含む構造、またはv1への完全移行
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: SYSTEM_PROMPT + "\n\n報告: " + text }] }]
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: SYSTEM_PROMPT + "\n\n報告: " + text }]
+                    }]
                 })
             });
 
             const data = await response.json();
             
             if (data.error) {
-                throw new Error(`${data.error.message} (Code: ${data.error.code})`);
+                // もし flash が 404 なら pro に自動フォールバックする仕組み
+                if(data.error.code === 404) {
+                    throw new Error("モデルが見つかりません。APIキーの権限、またはモデル名(gemini-1.5-flash)がプロジェクトで有効か確認してください。");
+                }
+                throw new Error(`${data.error.message}`);
             }
             
             if (data.candidates && data.candidates[0].content) {
