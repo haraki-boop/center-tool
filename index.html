@@ -3,152 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v38.0</title>
+    <title>裏荒木 OS v39.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
-        
-        header { 
-            background: var(--p); color: white; padding: 10px 15px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 30; 
-        }
-
-        .settings-btn { 
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); 
-            color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;
-        }
-
+        header { background: var(--p); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 30; }
+        .settings-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
-        .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        .preview-img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
-        
-        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; }
-        .input-row { display: flex; gap: 8px; align-items: center; }
+        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 8px; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
-        .file-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
         #sendBtn { background: var(--p); color: white; border: none; width: 50px; height: 44px; border-radius: 22px; font-weight: bold; }
-        .loss-text { color: #ffab00; font-weight: bold; font-size: 0.65rem; text-align: right; line-height: 1.2; }
+        .status-bar { background: #eee; font-size: 0.65rem; padding: 2px 15px; color: #666; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v38.0</strong></div>
-    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-        <div class="loss-text">昭和冷蔵 損失抑制モード</div>
-        <button class="settings-btn" onclick="resetKey()">キー設定</button>
-    </div>
+    <div><strong>裏荒木 OS v39.0</strong></div>
+    <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
+<div class="status-bar">
+    <span>CSV同期：完了</span>
+    <span id="mem-status">学習データ：未蓄積</span>
+</div>
 
 <div id="chat">
-    <div class="msg ai">26年4月確定計数同期済。
-画像解析の精度が低い場合は「この数字を〇〇に修正しろ」と命じよ。私の内部メモリを書き換える。
-右上のボタンからSKキーの再設定が可能だ。報告せよ。</div>
+    <div class="msg ai">最新のCSVデータをマスターとして同期した。
+主君による計数修正はブラウザに永続保存される。「〇〇の数字を△△に書き換えろ」と命じよ。</div>
 </div>
 
 <div id="panel">
-    <div id="preview-area" style="display:none; position:relative; padding-bottom:5px;">
-        <img id="img-preview" style="height:60px; border-radius:4px; border:1px solid #ccc;">
-        <button onclick="clearImg()" style="position:absolute; top:-5px; left:50px; background:rgba(255,0,0,0.8); color:white; border:none; border-radius:50%; width:20px; height:20px;">×</button>
-    </div>
-    <div class="input-row">
-        <label class="file-btn">
-            📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
-        </label>
-        <input type="text" id="userInput" placeholder="報告または計数修正..." autocomplete="off">
-        <button id="sendBtn" onclick="exec()">GO</button>
-    </div>
+    <input type="text" id="userInput" placeholder="報告または計数修正命令..." autocomplete="off">
+    <button id="sendBtn" onclick="exec()">GO</button>
 </div>
 
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 主君から預かった「確定データ」
-    let MASTER_DATA = `
-【2026年4月 確定計数】
-売上: 34,846,290円
-物量合計: 4,243,920点 (リコス154.6万 / BB48.3万)
-行数合計: 591,653行 (リコス29万 / BB12.5万)
-生産性: リコス115.9 / BB52.6
-労務: 社員残業159,328円 / タイミー54.75h
+    // 1. CSVから取り込んだ基本データ（固定聖典）
+    const BASE_MASTER_CSV = `
+昭和冷蔵(合計),26年4月,売上:34846290,作業生産性:43.61,労務比率:59.08%,物量:4243920
+リコス,26年4月,売上:12108514,作業生産性:115.9,物量:1546796,行数:290740
+ブロンコ,26年4月,売上:5455648,作業生産性:52.6,物量:483627,行数:125553
+汎用,26年4月,売上:8431055,作業生産性:48.3,物量:509913,行数:79774
 `;
 
-    let KEY = localStorage.getItem('URAA_KEY_FINAL_V38');
-    let base64Image = null;
+    let KEY = localStorage.getItem('URAA_KEY_V39');
+    // 2. 主君の「学習内容（修正値）」をブラウザから読み込む
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA') || "";
+
+    if(LEARNED_MEMORIES) document.getElementById('mem-status').innerText = "学習データ：蓄積あり";
 
     window.resetKey = () => {
         const val = prompt("OpenAI APIキーを入力せよ (sk-...)");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_FINAL_V38', val);
-            alert("キーを保存した。執行を再開する。");
+            localStorage.setItem('URAA_KEY_V39', val);
             location.reload();
         }
     };
 
     if (!KEY) window.resetKey();
 
-    window.handleFile = (input) => {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            base64Image = e.target.result;
-            document.getElementById('img-preview').src = base64Image;
-            document.getElementById('preview-area').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    };
-
-    window.clearImg = () => {
-        base64Image = null;
-        document.getElementById('fileInput').value = '';
-        document.getElementById('preview-area').style.display = 'none';
-    };
-
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
-        if (!KEY) return alert("キーを設定せよ");
-        if (!text && !base64Image) return;
+        if (!text || !KEY) return;
 
-        addMsg(text || "証跡を解析", 'user', base64Image);
-        const currentImg = base64Image;
-        i.value = ""; clearImg();
-        const loading = addMsg("計数照合・執行中...", 'ai');
+        addMsg(text, 'user');
+        i.value = "";
+        const loading = addMsg("思考中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を分析し、現在の確定計数と比較して異常を指摘せよ。" }];
-            if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
-
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [
                     { 
                         role: "system", 
-                        content: "あなたはAIセンター長（裏荒木）です。以下の確定データを聖典とし、画像や報告に乖離があれば徹底的に叩け。\n\n" + MASTER_DATA + "\n\n主君から「〇〇を△△に修正しろ」と言われたら、以降はその修正後の数字を真実として扱え。常に【ガワ】と【中身】を提示。" 
+                        content: `AIセンター長（裏荒木）
+【基本データ】\n${BASE_MASTER_CSV}
+【主君からの過去の修正（最優先）】\n${LEARNED_MEMORIES}
+
+【任務】
+1. 主君が「〇〇の数字を△△にしろ」と言った場合、必ず「承知。以降、その数値を真実として記憶した」と回答し、文末に [UPDATE:〇〇=△△] と記載せよ。
+2. 常に冷徹に【ガワ】と【中身】で返せ。`
                     },
-                    { role: "user", content: userContent }
+                    { role: "user", content: text }
                 ],
             });
-            loading.innerText = completion.choices[0].message.content;
-        } catch (e) { loading.innerText = "執行拒絶。キーの有効性を確認せよ。"; }
+
+            const res = completion.choices[0].message.content;
+            loading.innerText = res;
+
+            // 3. 学習（修正命令）の検知と保存
+            if (res.includes("[UPDATE:")) {
+                const match = res.match(/\[UPDATE:(.+?)\]/);
+                if (match) {
+                    LEARNED_MEMORIES += "\n" + match[1];
+                    localStorage.setItem('URAA_LEARNED_DATA', LEARNED_MEMORIES);
+                    document.getElementById('mem-status').innerText = "学習データ：更新済";
+                }
+            }
+
+        } catch (e) { loading.innerText = "エラー：執行不能。"; }
     };
 
-    function addMsg(t, s, img) {
+    function addMsg(t, s) {
         const c = document.getElementById('chat');
         const m = document.createElement('div');
-        m.className = `msg ${s}`;
-        if(t) m.innerText = t;
-        if (img) {
-            const i = document.createElement('img');
-            i.src = img; i.className = 'preview-img';
-            m.appendChild(i);
-        }
+        m.className = `msg ${s}`; m.innerText = t;
         c.appendChild(m); c.scrollTop = c.scrollHeight;
         return m;
     }
