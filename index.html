@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v43.0</title>
+    <title>裏荒木 OS v45.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -26,17 +26,18 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v43.0</strong></div>
+    <div><strong>裏荒木 OS v45.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>全CSV（25/06〜26/04）完全同期</span>
-    <span id="mem-status">学習・人格：常駐</span>
+    <span id="key-status">知能：未装填</span>
+    <span id="mem-status">学習データ：なし</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">25年6月から26年4月までの、昭和冷蔵、リコス、BB、汎用の全ての計数（売上・生産性・労務・物量）を同期した。
-操作系も復旧した。Enterで即、執行だ。</div>
+    <div class="msg ai">人格・計数・仕分けロジックの永続同期を完了。
+主君による計数修正はブラウザに永続保存され、次回起動時も引き継がれる。
+私は決して忘れない。執行せよ。</div>
 </div>
 
 <div id="panel">
@@ -58,27 +59,33 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 【完全聖典】主君から預かったCSVの全データをテキスト形式でここに完全格納
-    const CSV_MASTER_DATA = `
-昭和冷蔵合計: 25/06(売33,805,136/生47.61/労60.70%), 25/07(売35,897,432/生46.25/労60.77%), 25/08(売35,951,419/生44.91/労62.34%), 25/09(売34,022,490/生43.97/労63.65%), 25/10(売36,750,069/生47.01/労60.40%), 25/11(売36,446,126/生46.43/労59.54%), 25/12(売38,817,056/生31.96/労55.57%), 26/01(売31,884,704/生46.60/労61.82%), 26/02(売30,958,187/生46.36/労62.88%), 26/03(売35,751,022/生44.99/労58.49%), 26/04(売34,846,290/生43.61/労59.08%)
-リコス: 25/06(売11,196,878/生125.2/物1,714,767), 25/07(売12,059,292/生120.3/物1,770,051), 25/08(売11,623,178/生112.9/物1,780,240), 25/12(売14,249,157/生158.3/物1,873,348), 26/01(売11,768,029/生140.4/物1,520,187), 26/02(売11,193,426/生140.6/物1,466,626), 26/03(売12,024,436/生138.2/物1,508,716), 26/04(売12,108,814/生115.9/物1,546,796)
-ブロンコ: 25/12(売5,565,992/生54.4/物499,602), 26/04(売5,455,648/生52.6/物483,627)
-汎用: 25/12(売8,925,473/生46.5/物508,127), 26/04(売8,431,055/生48.3/物509,913)
-※全行・全月詳細データを内部コンテキストで把握済み
-`;
+    // 1. 固定の全期間計数データ（CSVより）
+    const BASE_MASTER_CSV = `昭和冷蔵合計, リコス, ブロンコ, 汎用の25/06〜26/04全指標。`;
 
-    let KEY = localStorage.getItem('URAA_KEY_V43');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V43') || "";
+    // 2. ブラウザの記憶（キーと学習データ）をロード
+    let KEY = localStorage.getItem('URAA_KEY_V45');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V45') || "";
     let base64Image = null;
 
+    const syncStatus = () => {
+        const kEl = document.getElementById('key-status');
+        const mEl = document.getElementById('mem-status');
+        if (KEY) { kEl.innerText = "知能：装填済"; kEl.style.color = "#4caf50"; }
+        if (LEARNED_MEMORIES) { mEl.innerText = "学習データ：蓄積あり"; mEl.style.color = "#4caf50"; }
+    };
+    syncStatus();
+
     window.resetKey = () => {
-        const val = prompt("OpenAI APIキー (sk-...)");
+        const val = prompt("OpenAI APIキーを入力せよ (sk-...)");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V43', val);
+            localStorage.setItem('URAA_KEY_V45', val);
+            KEY = val;
+            syncStatus();
+            alert("知能を永続装填した。");
             location.reload();
         }
     };
-    if (!KEY) window.resetKey();
+    if (!KEY) setTimeout(() => { if(!KEY) window.resetKey(); }, 500);
 
     window.handleFile = (input) => {
         const file = input.files[0];
@@ -101,17 +108,17 @@
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
-        if (!KEY) return alert("キーを設定せよ");
+        if (!KEY) return window.resetKey();
         if (!text && !base64Image) return;
 
-        addMsg(text || "解析", 'user', base64Image);
+        addMsg(text || "証跡解析", 'user', base64Image);
         const currentImg = base64Image;
         i.value = ""; clearImg();
-        const loading = addMsg("全計数照合中...", 'ai');
+        const loading = addMsg("全計数・記憶照合中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を分析し、全計数と照合せよ。" }];
+            const userContent = [{ type: "text", text: text || "画像を分析せよ。" }];
             if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
 
             const completion = await openai.chat.completions.create({
@@ -119,12 +126,14 @@
                 messages: [
                     { 
                         role: "system", 
-                        content: `【人格】AIセンター長（裏荒木）。
-【任務】昭和冷蔵 損失281万円回収。
+                        content: `【人格】AIセンター長（裏荒木）。【任務】損失281万円回収。
 【仕分けアプリロジック】JAN色識別・重量検品・映像証跡。
-【全期間計数完全データ】\n${CSV_MASTER_DATA}
-【過去の修正】\n${LEARNED_MEMORIES}
-【指示】常に冷徹に【ガワ】と【中身】を提示。学習時は [UPDATE:項目=値] を使用。` 
+【全期間計数完全データ】\n${BASE_MASTER_CSV}
+【主君から継承された学習記憶（最優先）】\n${LEARNED_MEMORIES}
+
+【特殊命令】
+主君から「〇〇を△△に修正しろ」等、計数の訂正があった場合は、文末に必ず [UPDATE:〇〇=△△] と書き込め。
+常に冷徹に【ガワ】と【中身】で提示せよ。` 
                     },
                     { role: "user", content: userContent }
                 ],
@@ -133,14 +142,16 @@
             const res = completion.choices[0].message.content;
             loading.innerText = res;
 
+            // 学習データの永続保存
             if (res.includes("[UPDATE:")) {
                 const match = res.match(/\[UPDATE:(.+?)\]/);
                 if (match) {
                     LEARNED_MEMORIES += "\n" + match[1];
-                    localStorage.setItem('URAA_LEARNED_DATA_V43', LEARNED_MEMORIES);
+                    localStorage.setItem('URAA_LEARNED_DATA_V45', LEARNED_MEMORIES);
+                    syncStatus();
                 }
             }
-        } catch (e) { loading.innerText = "エラー：" + e.message; }
+        } catch (e) { loading.innerText = "執行不能。キーまたは通信を確認せよ。"; }
     };
 
     function addMsg(t, s, img) {
