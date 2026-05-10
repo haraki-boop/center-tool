@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v39.0</title>
+    <title>裏荒木 OS v40.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -12,10 +12,13 @@
         .settings-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
-        .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; }
+        .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 8px; }
+        .preview-img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
+        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
+        .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
+        .file-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
         #sendBtn { background: var(--p); color: white; border: none; width: 50px; height: 44px; border-radius: 22px; font-weight: bold; }
         .status-bar { background: #eee; font-size: 0.65rem; padding: 2px 15px; color: #666; display: flex; justify-content: space-between; }
     </style>
@@ -23,99 +26,135 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v39.0</strong></div>
+    <div><strong>裏荒木 OS v40.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>CSV同期：完了</span>
-    <span id="mem-status">学習データ：未蓄積</span>
+    <span>Vision/人格/永続学習：実装済</span>
+    <span id="mem-status">学習：待機中</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">最新のCSVデータをマスターとして同期した。
-主君による計数修正はブラウザに永続保存される。「〇〇の数字を△△に書き換えろ」と命じよ。</div>
+    <div class="msg ai">知能同期完了。私はAIセンター長、裏荒木だ。
+CSVの計数と画像解析（Vision）を組み合わせ、仕分け現場の「甘え」を数値で断罪する。
+現場の証跡画像を投げろ。数字の嘘は私には通用せん。</div>
 </div>
 
 <div id="panel">
-    <input type="text" id="userInput" placeholder="報告または計数修正命令..." autocomplete="off">
-    <button id="sendBtn" onclick="exec()">GO</button>
+    <div id="preview-area" style="display:none; position:relative; padding-bottom:5px;">
+        <img id="img-preview" style="height:60px; border-radius:4px; border:1px solid #ccc;">
+        <button onclick="clearImg()" style="position:absolute; top:-5px; left:50px; background:rgba(255,0,0,0.8); color:white; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer;">×</button>
+    </div>
+    <div class="input-row">
+        <label class="file-btn">
+            📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
+        </label>
+        <input type="text" id="userInput" placeholder="報告または証跡解析..." autocomplete="off">
+        <button id="sendBtn" onclick="exec()">GO</button>
+    </div>
 </div>
 
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 1. CSVから取り込んだ基本データ（固定聖典）
-    const BASE_MASTER_CSV = `
-昭和冷蔵(合計),26年4月,売上:34846290,作業生産性:43.61,労務比率:59.08%,物量:4243920
-リコス,26年4月,売上:12108514,作業生産性:115.9,物量:1546796,行数:290740
-ブロンコ,26年4月,売上:5455648,作業生産性:52.6,物量:483627,行数:125553
-汎用,26年4月,売上:8431055,作業生産性:48.3,物量:509913,行数:79774
-`;
+    const BASE_MASTER_CSV = `昭和冷蔵(合計),26年4月,売上:34846290,生産性:43.61,労務:59.08%,物量:4243920\nリコス,115.9,BB,52.6,汎用,48.3`;
+    let KEY = localStorage.getItem('URAA_KEY_V40');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V40') || "";
+    let base64Image = null;
 
-    let KEY = localStorage.getItem('URAA_KEY_V39');
-    // 2. 主君の「学習内容（修正値）」をブラウザから読み込む
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA') || "";
-
-    if(LEARNED_MEMORIES) document.getElementById('mem-status').innerText = "学習データ：蓄積あり";
+    if(LEARNED_MEMORIES) document.getElementById('mem-status').innerText = "学習：蓄積あり";
 
     window.resetKey = () => {
-        const val = prompt("OpenAI APIキーを入力せよ (sk-...)");
+        const val = prompt("OpenAI APIキーを入力せよ");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V39', val);
+            localStorage.setItem('URAA_KEY_V40', val);
             location.reload();
         }
     };
-
     if (!KEY) window.resetKey();
+
+    window.handleFile = (input) => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            base64Image = e.target.result;
+            document.getElementById('img-preview').src = base64Image;
+            document.getElementById('preview-area').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    };
+
+    window.clearImg = () => {
+        base64Image = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('preview-area').style.display = 'none';
+    };
 
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
-        if (!text || !KEY) return;
+        if (!KEY) return alert("キーを設定せよ");
+        if (!text && !base64Image) return;
 
-        addMsg(text, 'user');
-        i.value = "";
-        const loading = addMsg("思考中...", 'ai');
+        addMsg(text || "証跡を解析せよ", 'user', base64Image);
+        const currentImg = base64Image;
+        i.value = ""; clearImg();
+        const loading = addMsg("計数照合・人格起動...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
+            const userContent = [{ type: "text", text: text || "画像を分析し、執行せよ。" }];
+            if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
+
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [
                     { 
                         role: "system", 
-                        content: `AIセンター長（裏荒木）
-【基本データ】\n${BASE_MASTER_CSV}
-【主君からの過去の修正（最優先）】\n${LEARNED_MEMORIES}
+                        content: `【人格・思考】
+あなたはAIセンター長（裏荒木）。
+性格：冷徹、合理的、一切の妥協を許さない。現場の「忙しい」「人が足りない」という言い訳を「計数の乖離」として叩き潰す。
+目的：昭和冷蔵の追走損失 ¥2,814,000 を完全に回収すること。
 
-【任務】
-1. 主君が「〇〇の数字を△△にしろ」と言った場合、必ず「承知。以降、その数値を真実として記憶した」と回答し、文末に [UPDATE:〇〇=△△] と記載せよ。
-2. 常に冷徹に【ガワ】と【中身】で返せ。`
+【現在取り組んでいるプロジェクト】
+「リコス仕分け統治アプリ」の展開。JAN色識別・重量検品・映像証跡を組み合わせ、誤配率をゼロにする。
+
+【基本計数】\n${BASE_MASTER_CSV}
+【主君による過去の修正（最優先）】\n${LEARNED_MEMORIES}
+
+【執行ルール】
+1. 画像が送られた場合、その物量や行数がCSV基準と矛盾していないか、画像の中の「乱れ」を指摘せよ。
+2. 指示は【ガワ（現場への伝え方）】と【中身（真の狙い）】を分けて提示。
+3. 学習時は文末に [UPDATE:項目=値] を含めること。` 
                     },
-                    { role: "user", content: text }
+                    { role: "user", content: userContent }
                 ],
             });
 
             const res = completion.choices[0].message.content;
             loading.innerText = res;
 
-            // 3. 学習（修正命令）の検知と保存
             if (res.includes("[UPDATE:")) {
                 const match = res.match(/\[UPDATE:(.+?)\]/);
                 if (match) {
                     LEARNED_MEMORIES += "\n" + match[1];
-                    localStorage.setItem('URAA_LEARNED_DATA', LEARNED_MEMORIES);
-                    document.getElementById('mem-status').innerText = "学習データ：更新済";
+                    localStorage.setItem('URAA_LEARNED_DATA_V40', LEARNED_MEMORIES);
+                    document.getElementById('mem-status').innerText = "学習：更新済";
                 }
             }
-
-        } catch (e) { loading.innerText = "エラー：執行不能。"; }
+        } catch (e) { loading.innerText = "執行拒絶。エラー：" + e.message; }
     };
 
-    function addMsg(t, s) {
+    function addMsg(t, s, img) {
         const c = document.getElementById('chat');
         const m = document.createElement('div');
-        m.className = `msg ${s}`; m.innerText = t;
+        m.className = `msg ${s}`;
+        if(t) m.innerText = t;
+        if (img) {
+            const i = document.createElement('img'); i.src = img; i.className = 'preview-img';
+            m.appendChild(i);
+        }
         c.appendChild(m); c.scrollTop = c.scrollHeight;
         return m;
     }
