@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="tab-title">執行 OS v68.0</title>
+    <title>執行 OS v72.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -20,7 +20,7 @@
         .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
         #memBtn { background: #e8f5e9; border: 1.5px solid #2e7d32; color: #2e7d32; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #aaa; display: flex; justify-content: space-between; }
+        .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #00ff00; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -30,8 +30,8 @@
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>文脈維持エンジン：搭載 (履歴 10件保持)</span>
-    <span id="mem-status">パンク防止プロトコル：稼働中</span>
+    <span>記憶絶対防衛プロトコル：オンライン</span>
+    <span id="mem-count">魂の記憶：同期済み</span>
 </div>
 
 <div id="chat"></div>
@@ -40,7 +40,7 @@
     <div class="input-row">
         <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="会話の流れを読んで返答します..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="主君、私はすべてを覚えています..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -50,31 +50,62 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
     
-    const MEM_KEY = 'URAA_ULTIMATE_MEMORY';
-    const DATA_KEY = 'URAA_STRUCTURED_DATA';
-    const NAME_KEY = 'URAA_CUSTOM_NAME';
+    // 【絶対変更禁止】このキーが主君の全知能を守ります
+    const STORAGE_KEY = 'URAA_INTEGRATED_BRAIN';
     const API_KEY_STORE = 'URAA_API_KEY';
 
     let KEY = localStorage.getItem(API_KEY_STORE);
-    let chatHistory = []; // 文脈維持用の短期記憶
+    let brain = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+        name: "AIセンター長",
+        personality: "主君への忠節と冷徹な執行",
+        structuredData: [],
+        soulMemory: []
+    };
+    let chatHistory = [];
     let memoryMode = false;
-    let customName = localStorage.getItem(NAME_KEY) || "AIセンター長";
 
-    const getMem = () => localStorage.getItem(MEM_KEY) || "";
-    const getData = () => localStorage.getItem(DATA_KEY) || "";
-
-    document.getElementById('display-name').innerText = customName;
+    document.getElementById('display-name').innerText = brain.name;
 
     window.openSettings = () => {
-        const choice = prompt(`1: APIキー\n2: 名前\n3: CSV登録\n4: 履歴リセット\n5: 全消去`);
+        const choice = prompt(
+            "【記憶防衛メニュー】\n" +
+            "1: APIキー設定\n" +
+            "2: 名前を変更する\n" +
+            "3: 記憶のエクスポート（引継ぎコード発行）\n" +
+            "4: 記憶のインポート（引継ぎコード適用）\n" +
+            "5: 数値データ直接編集"
+        );
+        
         if (choice === "1") {
-            const v = prompt("Key", KEY || ""); if (v) localStorage.setItem(API_KEY_STORE, v); location.reload();
+            const v = prompt("Key", KEY || ""); 
+            if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
+        } else if (choice === "2") {
+            const n = prompt("Name", brain.name); 
+            if (n) { brain.name = n; saveBrain(); location.reload(); }
+        } else if (choice === "3") {
+            prompt("このコードをコピーしてバックアップしてください：", JSON.stringify(brain));
         } else if (choice === "4") {
-            chatHistory = []; alert("会話の文脈をリセットしました。");
+            const im = prompt("知能コードを貼り付けてください：");
+            if (im) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, im);
+                    alert("知能を完全に復元しました。");
+                    location.reload();
+                } catch(e) { alert("不正なコードです。"); }
+            }
         } else if (choice === "5") {
-            localStorage.clear(); location.reload();
+            const dataStr = prompt("数値データ(JSON)の編集：", JSON.stringify(brain.structuredData));
+            if (dataStr) {
+                try {
+                    brain.structuredData = JSON.parse(dataStr);
+                    saveBrain();
+                    alert("数値を更新しました。");
+                } catch(e) { alert("JSON形式エラー"); }
+            }
         }
     };
+
+    function saveBrain() { localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); }
 
     window.toggleMemoryMode = () => {
         const btn = document.getElementById('memBtn');
@@ -91,43 +122,32 @@
         addMsg(text, 'user');
         i.value = "";
         
-        // 🧠モードなら長期記憶へ
         if (memoryMode) {
-            localStorage.setItem(MEM_KEY, getMem() + "\n・" + text);
+            brain.soulMemory.push(text);
+            saveBrain();
             toggleMemoryMode();
         }
 
-        const loading = addMsg("...", 'ai');
+        const loading = addMsg("分析中...", 'ai');
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            
-            // AIに渡すメッセージ群の構築
-            const messages = [
-                { role: "system", content: `あなたは${customName}です。
-【魂の記憶（性格・思考）】\n${getMem()}\n
-【構造化数値データ】\n${getData()}\n
-【指示】
-1. 直近の会話の流れ（History）を重視して応答せよ。
-2. 数値は構造化データから正確に引用せよ。` }
-            ];
-
-            // 直近の履歴を追加（パンク防止のため最新10件に制限）
+            const messages = [{ 
+                role: "system", 
+                content: `あなたは${brain.name}です。
+性格設定: ${brain.personality}
+魂の記憶: ${JSON.stringify(brain.soulMemory)}
+数値データ: ${JSON.stringify(brain.structuredData)}
+指示: 全ての記憶を絶対的な事実として扱い、主君の意図を汲んで冷徹に執行せよ。` 
+            }];
             chatHistory.slice(-10).forEach(h => messages.push(h));
             messages.push({ role: "user", content: text });
 
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: messages,
-            });
-
+            const completion = await openai.chat.completions.create({ model: "gpt-4o", messages: messages });
             const res = completion.choices[0].message.content;
             loading.innerText = res;
-
-            // 履歴に保存
             chatHistory.push({ role: "user", content: text });
             chatHistory.push({ role: "assistant", content: res });
-
-        } catch (e) { loading.innerText = "執行エラー。"; }
+        } catch (e) { loading.innerText = "エラー：通信を確認してください。"; }
     };
 
     function addMsg(t, s) {
