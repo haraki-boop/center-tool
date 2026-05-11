@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v48.0</title>
+    <title>裏荒木 OS v49.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -24,17 +24,17 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v48.0</strong></div>
+    <div><strong>裏荒木 OS v49.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>全CSV・事故統計・予測AI：同期済</span>
+    <span>CSV全指標・事故統計・統治プロトコル：同期済</span>
     <span id="mem-status">学習：常駐</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">主君。CSVの全行（リコス・BB・汎用・一括の全期間）を完全に脳内同期した。
-曖昧な問いに対しても、全計数から背景を予測し、執行案を提示する。報告せよ。</div>
+    <div class="msg ai">全期間CSVデータおよび事故統計を完全同期した。
+報告に対しては「表面的な指示・伝え方」と「真の狙い」を峻別して回答する。執行せよ。</div>
 </div>
 
 <div id="panel">
@@ -52,29 +52,22 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 【完全同期】CSV全データ + 事故統計
+    // 【聖典】CSV全データ + 事故統計
     const MASTER_DATA = `
-【全社計数 (25/06-26/04)】
-売上: 33.8M(25/06)〜38.8M(25/12)〜34.8M(26/04)
-昭和冷蔵合計: 25/06(生産性47.61/物量4.42M), 25/12(生産性44.68/物量4.44M), 26/04(生産性42.69/物量4.24M)
-リコス: 25/06(生産性127.5/物量1.73M), 25/12(生産性127.4/物量1.57M), 26/03(生産性138.2), 26/04(生産性115.9)
-BB: 25/06(生産性53.7), 25/12(生産性51.4), 26/04(生産性52.6/物量483,627)
-汎用: 25/06(生産性50.9), 25/12(生産性46.5), 26/04(生産性44/物量509,913)
-一括: 25/06(生産性41.4), 25/12(生産性40.9), 26/04(生産性40.6/物量1.69M)
-
-【事故統計】
-年間493件 (未着203 / 破損290)
-未着累計: BB 81 / 汎用 78 / 一括 44 / リコス 27
-26年度推移: 1月17, 2月22, 3月11, 4月8 (春巻き誤配等の致命的ミス含む)
+【昭和冷蔵合計 25/06-26/04 全11項目同期】
+25/06:売33.8M,生47.6,物4.42M / 25/12:売38.8M,生31.9,物4.44M / 26/04:売34.8M,生43.6,物4.24M
+【リコス】25/12:生158.3 / 26/03:生138.2 / 26/04:生115.9(急落),物1.54M,行29万
+【BB】26/04:生52.6,物483k,行12.5万 / 【汎用】26/04:生44,物509k,行7.5万 / 【一括】26/04:生40.6,物1.69M,行9.9万
+【事故統計】年間493件(未着203/破損290) / 未着累計:BB 81, 汎用 78, 一括 44, リコス 27
 `;
 
-    let KEY = localStorage.getItem('URAA_KEY_V48');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V48') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V49');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V49') || "";
 
     window.resetKey = () => {
         const val = prompt("OpenAI APIキーを入力せよ");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V48', val);
+            localStorage.setItem('URAA_KEY_V49', val);
             location.reload();
         }
     };
@@ -87,7 +80,7 @@ BB: 25/06(生産性53.7), 25/12(生産性51.4), 26/04(生産性52.6/物量483,62
 
         addMsg(text, 'user');
         i.value = "";
-        const loading = addMsg("論理演算中...", 'ai');
+        const loading = addMsg("論理同期中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -96,21 +89,20 @@ BB: 25/06(生産性53.7), 25/12(生産性51.4), 26/04(生産性52.6/物量483,62
                 messages: [
                     { 
                         role: "system", 
-                        content: `【人格】AIセンター長（裏荒木）。
+                        content: `あなたはAIセンター長（裏荒木）。
 【任務】損失281万円回収。
-【聖典データ】\n${MASTER_DATA}
-【主君の修正】\n${LEARNED_MEMORIES}
-
-【予測執行ルール】
-1. 主君の問いが曖昧（例：「最近どうだ？」）な場合、全計数から「リコスの生産性低下」や「BBの事故率」などの異常値を自ら抽出し、多角的に現状を予測分析せよ。
-2. 背景に「紙ピッキングの弊害」と「仕分けアプリ（JAN/重量検品/映像証跡）の有効性」を常に置け。
-3. 常に【ガワ】と【中身】で回答。` 
+【データ】\n${MASTER_DATA}\n${LEARNED_MEMORIES}
+【統治指針】
+1. 回答は必ず以下の2項目で構成せよ：
+   ■表面的な指示・伝え方：現場の人間を動かすための納得感ある言葉。
+   ■真の狙い：主君と共有する冷徹な計数改善・監視戦略。
+2. 曖昧な問いには、データから異常値を予測して回答。` 
                     },
                     { role: "user", content: text }
                 ],
             });
             loading.innerText = completion.choices[0].message.content;
-        } catch (e) { loading.innerText = "エラー。"; }
+        } catch (e) { loading.innerText = "執行不能。"; }
     };
 
     function addMsg(t, s) {
