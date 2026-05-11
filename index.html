@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v46.0</title>
+    <title>裏荒木 OS v47.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -15,7 +15,7 @@
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
         .preview-img { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
-        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; gap: 8px; }
+        #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
         .file-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
@@ -26,18 +26,18 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v46.0</strong></div>
+    <div><strong>裏荒木 OS v47.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>全計数・事故統計・人格：完全同期済</span>
-    <span id="mem-status">学習待機中</span>
+    <span>計数・事故・仕分けロジック：全同期</span>
+    <span id="mem-status">学習：常駐</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">年間493件の事故データ、26年度の未着・破損の推移、すべて同期した。
-紙ピッキングによる「春巻き誤配」のような致命的ミスは、この私が仕分けアプリのロジックで根絶する。
-証拠を提示せよ。</div>
+    <div class="msg ai">主君、失礼した。CSVの全計数データ（25/06-26/04）を完全に復旧し、事故統計と統合した。
+リコスの生産性急落（138.2→115.9）と未着事故の相関など、あらゆる角度から現場を裁くことが可能だ。
+Enterで執行せよ。</div>
 </div>
 
 <div id="panel">
@@ -49,7 +49,7 @@
         <label class="file-btn">
             📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
         </label>
-        <input type="text" id="userInput" placeholder="事故報告または証跡解析..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="報告または証跡解析..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -59,26 +59,34 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 事故統計データの完全格納
-    const ACCIDENT_DATA = `
-【年間事故累計】合計493件 (未着203件 / 破損・紛失290件)
-【2026年度推移】
-1月: 未着17, 破損57 / 2月: 未着22, 破損31 / 3月: 未着11, 破損28
-4月: 未着8 (春巻き誤配等致命的ミス継続) / 5月3日: 未着1
-【カテゴリ別未着累計】
-BB: 81件 / 汎用: 78件 / 一括: 44件 / リコス: 27件
+    // 【完全同期：計数・事故マスター】
+    const MASTER_SOURCE = `
+【全社計数 (25/06-26/04)】
+売上: 33.8M(25/06) -> 38.8M(25/12) -> 34.8M(26/04)
+生産性(合計): 47.61(25/06) -> 31.96(25/12) -> 42.69(26/04)
+物量(合計): 4.42M(25/06) -> 4.44M(25/12) -> 4.24M(26/04)
+
+【カテゴリ別生産性/物量 (26/04時点)】
+リコス: 生産性 115.9 / 物量 1,559,832 / 行数 290,486
+BB: 生産性 52.6 / 物量 483,627 / 行数 125,748
+汎用: 生産性 44 / 物量 509,913 / 行数 75,854
+一括: 生産性 40.6 / 物量 1,690,548 / 行数 99,565
+
+【事故統計】
+年間計: 493件 (未着203 / 破損290)
+未着累計: BB 81 / 汎用 78 / 一括 44 / リコス 27
+26年度未着推移: 1月 17 / 2月 22 / 3月 11 / 4月 8
+春巻き誤配等、4月以降も致命的ミス継続
 `;
 
-    const CSV_MASTER = `昭和冷蔵全期間計数データ同期済み。`;
-
-    let KEY = localStorage.getItem('URAA_KEY_V46');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V46') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V47');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V47') || "";
     let base64Image = null;
 
     window.resetKey = () => {
         const val = prompt("OpenAI APIキーを入力せよ");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V46', val);
+            localStorage.setItem('URAA_KEY_V47', val);
             location.reload();
         }
     };
@@ -108,14 +116,14 @@ BB: 81件 / 汎用: 78件 / 一括: 44件 / リコス: 27件
         if (!KEY) return window.resetKey();
         if (!text && !base64Image) return;
 
-        addMsg(text || "事故証跡の解析を執行", 'user', base64Image);
+        addMsg(text || "証跡解析", 'user', base64Image);
         const currentImg = base64Image;
         i.value = ""; clearImg();
-        const loading = addMsg("事故データ照合中...", 'ai');
+        const loading = addMsg("論理同期中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を分析し、事故統計と照合しろ。" }];
+            const userContent = [{ type: "text", text: text || "画像を分析し、計数・事故データと照合せよ。" }];
             if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
 
             const completion = await openai.chat.completions.create({
@@ -123,32 +131,27 @@ BB: 81件 / 汎用: 78件 / 一括: 44件 / リコス: 27件
                 messages: [
                     { 
                         role: "system", 
-                        content: `【人格】AIセンター長（裏荒木）。
-【任務】昭和冷蔵 損失281万円回収。
-【事故統計】\n${ACCIDENT_DATA}
-【基本計数】\n${CSV_MASTER}
-【仕分けアプリロジック】JAN色識別・重量検品・映像証跡。紙ピッキングを「悪」と断じる。
-【過去の修正記憶】\n${LEARNED_MEMORIES}
-
-【特殊命令】
-主君から「〇〇を△△に修正しろ」と言われたら、文末に [UPDATE:〇〇=△△] を付加。
-常に冷徹に【ガワ】と【中身】で提示せよ。` 
+                        content: `【人格】AIセンター長（裏荒木）。合理的、冷徹。
+【任務】損失281万円回収。紙ピッキング等のアナログ手法を断罪する。
+【同期データ】\n${MASTER_SOURCE}
+【学習記憶】\n${LEARNED_MEMORIES}
+常に【ガワ】と【中身】で回答。計数修正時は文末に [UPDATE:項目=値] を付与せよ。` 
                     },
                     { role: "user", content: userContent }
                 ],
             });
-
+            loading.innerText = completion.choices[0].message.content;
+            
+            // 学習データの保存
             const res = completion.choices[0].message.content;
-            loading.innerText = res;
-
             if (res.includes("[UPDATE:")) {
                 const match = res.match(/\[UPDATE:(.+?)\]/);
                 if (match) {
                     LEARNED_MEMORIES += "\n" + match[1];
-                    localStorage.setItem('URAA_LEARNED_DATA_V46', LEARNED_MEMORIES);
+                    localStorage.setItem('URAA_LEARNED_DATA_V47', LEARNED_MEMORIES);
                 }
             }
-        } catch (e) { loading.innerText = "エラー：執行不能。"; }
+        } catch (e) { loading.innerText = "執行拒絶。"; }
     };
 
     function addMsg(t, s, img) {
