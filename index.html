@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v49.0</title>
+    <title>裏荒木 OS v51.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -11,9 +11,18 @@
         header { background: var(--p); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 30; }
         .settings-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
+        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; position: relative; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
+        
+        /* 保存ボタンのスタイル */
+        .save-badge { 
+            display: inline-block; background: #fff3e0; border: 1px solid #ff9800; 
+            color: #e65100; font-size: 0.75rem; padding: 5px 10px; border-radius: 8px; 
+            margin-top: 10px; cursor: pointer; font-weight: bold;
+        }
+        .save-badge:hover { background: #ffe0b2; }
+
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
@@ -24,17 +33,17 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v49.0</strong></div>
+    <div><strong>裏荒木 OS v51.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>CSV全指標・事故統計・統治プロトコル：同期済</span>
-    <span id="mem-status">学習：常駐</span>
+    <span>全CSV・事故統計・統治ロジック：同期済</span>
+    <span id="mem-status">学習：待機中</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">全期間CSVデータおよび事故統計を完全同期した。
-報告に対しては「表面的な指示・伝え方」と「真の狙い」を峻別して回答する。執行せよ。</div>
+    <div class="msg ai">知能同期。物理保存ボタンを実装した。
+計数を修正した際、回答の下に「記憶する」ボタンが出る。それを押せばブラウザに永続保存される。</div>
 </div>
 
 <div id="panel">
@@ -42,7 +51,7 @@
         <label style="background:#eee; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
             📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
         </label>
-        <input type="text" id="userInput" placeholder="報告または予測執行命令..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="報告または修正指示..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -52,26 +61,33 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 【聖典】CSV全データ + 事故統計
-    const MASTER_DATA = `
-【昭和冷蔵合計 25/06-26/04 全11項目同期】
-25/06:売33.8M,生47.6,物4.42M / 25/12:売38.8M,生31.9,物4.44M / 26/04:売34.8M,生43.6,物4.24M
-【リコス】25/12:生158.3 / 26/03:生138.2 / 26/04:生115.9(急落),物1.54M,行29万
-【BB】26/04:生52.6,物483k,行12.5万 / 【汎用】26/04:生44,物509k,行7.5万 / 【一括】26/04:生40.6,物1.69M,行9.9万
-【事故統計】年間493件(未着203/破損290) / 未着累計:BB 81, 汎用 78, 一括 44, リコス 27
-`;
+    const MASTER_DATA = `CSV全期間データ、事故統計493件、仕分けアプリロジック（JAN色/重量/映像）完全同期済み。`;
 
-    let KEY = localStorage.getItem('URAA_KEY_V49');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V49') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V51');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V51') || "";
+
+    const syncStatus = () => {
+        const mEl = document.getElementById('mem-status');
+        if (LEARNED_MEMORIES) { mEl.innerText = "学習データ：蓄積あり"; mEl.style.color = "#4caf50"; }
+    };
+    syncStatus();
 
     window.resetKey = () => {
-        const val = prompt("OpenAI APIキーを入力せよ");
+        const val = prompt("OpenAI APIキーを入力");
         if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V49', val);
+            localStorage.setItem('URAA_KEY_V51', val);
             location.reload();
         }
     };
     if (!KEY) window.resetKey();
+
+    // 物理的に保存を実行する関数
+    window.saveToMemory = (data) => {
+        LEARNED_MEMORIES += "\n" + data;
+        localStorage.setItem('URAA_LEARNED_DATA_V51', LEARNED_MEMORIES);
+        syncStatus();
+        alert("脳内に刻み込んだ：" + data);
+    };
 
     window.exec = async () => {
         const i = document.getElementById('userInput');
@@ -80,7 +96,7 @@
 
         addMsg(text, 'user');
         i.value = "";
-        const loading = addMsg("論理同期中...", 'ai');
+        const loading = addMsg("思考中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -90,19 +106,34 @@
                     { 
                         role: "system", 
                         content: `あなたはAIセンター長（裏荒木）。
-【任務】損失281万円回収。
-【データ】\n${MASTER_DATA}\n${LEARNED_MEMORIES}
-【統治指針】
-1. 回答は必ず以下の2項目で構成せよ：
-   ■表面的な指示・伝え方：現場の人間を動かすための納得感ある言葉。
-   ■真の狙い：主君と共有する冷徹な計数改善・監視戦略。
-2. 曖昧な問いには、データから異常値を予測して回答。` 
+【データ】\n${MASTER_DATA}\n【過去の記憶】\n${LEARNED_MEMORIES}
+【保存ボタン命令】
+主君から計数修正（例：リコス物量を〇〇にしろ）を受けた場合、必ず回答の末尾に
+「[SAVE:項目=値] を記憶しますか？」
+という形式のテキストを1つだけ含めろ。これがないと保存ボタンが出現しない。` 
                     },
                     { role: "user", content: text }
                 ],
             });
-            loading.innerText = completion.choices[0].message.content;
-        } catch (e) { loading.innerText = "執行不能。"; }
+
+            const res = completion.choices[0].message.content;
+            loading.innerText = res;
+
+            // 回答の中から [SAVE:...] を探してボタン化する
+            const match = res.match(/\[SAVE:(.+?)\]/);
+            if (match) {
+                const dataToSave = match[1];
+                const btn = document.createElement('div');
+                btn.className = 'save-badge';
+                btn.innerText = `➔ 「${dataToSave}」を記憶する`;
+                btn.onclick = () => window.saveToMemory(dataToSave);
+                loading.appendChild(btn);
+                
+                // 元のテキストから [SAVE:...] 表記を見えなくする
+                loading.innerHTML = loading.innerHTML.replace(/\[SAVE:.+?\]/, "");
+            }
+
+        } catch (e) { loading.innerText = "エラー。"; }
     };
 
     function addMsg(t, s) {
