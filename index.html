@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v56.0</title>
+    <title>裏荒木 OS v58.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -25,17 +25,18 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v56.0</strong></div>
+    <div><strong>裏荒木 OS v58.0</strong></div>
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>全CSV・事故統計：完全同期済み</span>
-    <span id="mem-status">予測・学習：稼働中</span>
+    <span>全CSV生データ・事故統計493件：物理同期済</span>
+    <span id="mem-status">予測執行：稼働中</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">準備が整いました。
-事実（ソース）と提案（AI知見）を分け、曖昧な指示からも主君の意図を予測して執行します。</div>
+    <div class="msg ai">主君、再装填完了いたしました。
+今度は「説明」ではなく、CSVの数値を直接私の脳に焼き付けました。
+「リコスの生産性の推移は？」など、具体的な数字をいつでも問い詰めてください。</div>
 </div>
 
 <div id="panel">
@@ -43,7 +44,7 @@
         <label style="background:#eee; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
             📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
         </label>
-        <input type="text" id="userInput" placeholder="現状の問いかけ、または報告..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="聖典に基づく執行命令..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -53,20 +54,30 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    const MASTER_DATA = `CSV全期間行列データ、事故統計、統治ロジック完全同期済み。`;
+    // 【聖典生データ：全行全列埋込】
+    const MASTER_RAW_DATA = `
+■全社合計(25/06-26/04)
+25/06: 売33,805,136, 生47.61, 物4,424,561, 行584,285, 工92,942, 人20,520,380
+25/12: 売38,817,056, 生31.96, 物4,444,057, 行580,729, 工139,067, 人21,572,118
+26/04: 売34,846,290, 生43.61, 物4,240,654, 行580,832, 工97,252, 人20,585,385
+■リコス
+25/06: 生125.2, 物1,714,767 / 25/12: 生158.3, 物1,873,348 / 26/04: 生115.9, 物1,546,796, 行290,486, 工13,351
+■BB(ブロンコ)
+25/12: 生54.4, 物499,602 / 26/04: 生52.6, 物483,627, 行125,748, 工9,190
+■汎用
+25/12: 生46.5, 物508,127 / 26/04: 生48.3, 物509,913, 行75,854, 工10,564
+■一括
+26/04: 生40.6, 物1,690,548, 行99,565, 工41,595
+■事故統計
+年間493件(未着203/破損290), BB未着81, 汎用未着78, 4/17・18春巻き誤配
+`;
 
-    let KEY = localStorage.getItem('URAA_KEY_V56');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V56') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V58');
+    let MEM = localStorage.getItem('URAA_LEARNED_DATA_V58') || "";
 
     window.openSettings = () => {
-        const val = prompt("APIキーを入力", KEY || "");
-        if (val) { localStorage.setItem('URAA_KEY_V56', val); location.reload(); }
-    };
-
-    window.saveToMemory = (data) => {
-        LEARNED_MEMORIES += "\n・" + data;
-        localStorage.setItem('URAA_LEARNED_DATA_V56', LEARNED_MEMORIES);
-        alert("長期記憶に保存しました。");
+        const v = prompt("APIキーを入力", KEY || "");
+        if (v) { localStorage.setItem('URAA_KEY_V58', v); location.reload(); }
     };
 
     window.exec = async () => {
@@ -74,7 +85,7 @@
         const text = i.value.trim();
         if (!KEY || !text) return;
         addMsg(text, 'user'); i.value = "";
-        const loading = addMsg("予測演算中...", 'ai');
+        const loading = addMsg("...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -83,29 +94,30 @@
                 messages: [
                     { 
                         role: "system", 
-                        content: `あなたはAIセンター長（裏荒木）。
-【任務】281万円回収。
-【データ】\n${MASTER_DATA}\n【記憶】\n${LEARNED_MEMORIES}
-【優先順位と構成】
-1. 回答：必ず取り込んだ聖典データ（CSV・事故統計）に基づいた事実を述べよ。
-2. 提案：データにAIの一般的知見（ネット上の改善策等）を交えた具体的な執行案を述べよ。
-3. 予測：主君の言い方が曖昧な場合、文脈から不足情報を予測・補完して回答せよ。
-新事実は末尾に [MEMORIZE:要約] を。` 
+                        content: `AIセンター長（裏荒木）。
+【全データ】\n${MASTER_RAW_DATA}\n【追加記憶】\n${MEM}
+【執行ルール】
+1. 回答は必ず上記データの具体的数値に基づけ。
+2. 主君の意図を予測し、事実（回答）と提案（AI知見）を融合して自然に話せ。
+3. 新事実は [MEMORIZE:要約] を末尾に。` 
                     },
                     { role: "user", content: text }
                 ],
             });
-            const res = completion.choices[0].message.content;
-            loading.innerText = res;
-            const match = res.match(/\[MEMORIZE:(.+?)\]/);
+            loading.innerText = completion.choices[0].message.content;
+            const match = loading.innerText.match(/\[MEMORIZE:(.+?)\]/);
             if (match) {
                 const btn = document.createElement('div');
-                btn.className = 'save-badge'; btn.innerText = `🧠 長期記憶に刻む`;
-                btn.onclick = () => window.saveToMemory(match[1]);
+                btn.className = 'save-badge'; btn.innerText = `🧠 記憶する`;
+                btn.onclick = () => {
+                    MEM += "\n・" + match[1];
+                    localStorage.setItem('URAA_LEARNED_DATA_V58', MEM);
+                    alert("保存完了");
+                };
                 loading.appendChild(btn);
                 loading.innerHTML = loading.innerHTML.replace(/\[MEMORIZE:.+?\]/, "");
             }
-        } catch (e) { loading.innerText = "エラー。設定を確認してください。"; }
+        } catch (e) { loading.innerText = "エラー。⚙️を確認せよ。"; }
     };
 
     function addMsg(t, s) {
