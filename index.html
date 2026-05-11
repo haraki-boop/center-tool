@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v58.0</title>
+    <title>裏荒木 OS v59.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -14,37 +14,43 @@
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        .save-badge { display: block; background: #e8f5e9; border: 1.5px solid #2e7d32; color: #1b5e20; font-size: 0.8rem; padding: 8px; border-radius: 10px; margin-top: 10px; cursor: pointer; text-align: center; }
+        
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
+        
+        /* ボタン類のデザイン */
+        .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
+        #memBtn { background: #e8f5e9; border: 1.5px solid #2e7d32; color: #2e7d32; font-size: 1.1rem; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        
         .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #aaa; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v58.0</strong></div>
+    <div><strong>裏荒木 OS v59.0</strong></div>
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>全CSV生データ・事故統計493件：物理同期済</span>
-    <span id="mem-status">予測執行：稼働中</span>
+    <span>全CSV生データ・事故統計：物理同期済み</span>
+    <span id="mem-info">長期記憶：準備完了</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">主君、再装填完了いたしました。
-今度は「説明」ではなく、CSVの数値を直接私の脳に焼き付けました。
-「リコスの生産性の推移は？」など、具体的な数字をいつでも問い詰めてください。</div>
+    <div class="msg ai">主君、お待たせいたしました。
+記憶ボタンをそちら側に配置しました。
+入力した内容を私に覚えさせたい時は、送信前に「🧠」ボタンを押してください。</div>
 </div>
 
 <div id="panel">
     <div class="input-row">
-        <label style="background:#eee; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+        <label class="action-btn" title="画像を添付">
             📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
         </label>
-        <input type="text" id="userInput" placeholder="聖典に基づく執行命令..." autocomplete="off">
+        <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()" title="今の入力を長期記憶に保存する">🧠</button>
+        <input type="text" id="userInput" placeholder="報告、指示、または記憶させたいこと..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -54,7 +60,6 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    // 【聖典生データ：全行全列埋込】
     const MASTER_RAW_DATA = `
 ■全社合計(25/06-26/04)
 25/06: 売33,805,136, 生47.61, 物4,424,561, 行584,285, 工92,942, 人20,520,380
@@ -63,29 +68,43 @@
 ■リコス
 25/06: 生125.2, 物1,714,767 / 25/12: 生158.3, 物1,873,348 / 26/04: 生115.9, 物1,546,796, 行290,486, 工13,351
 ■BB(ブロンコ)
-25/12: 生54.4, 物499,602 / 26/04: 生52.6, 物483,627, 行125,748, 工9,190
-■汎用
-25/12: 生46.5, 物508,127 / 26/04: 生48.3, 物509,913, 行75,854, 工10,564
-■一括
-26/04: 生40.6, 物1,690,548, 行99,565, 工41,595
+26/04: 生52.6, 物483,627, 行125,748, 工9,190
 ■事故統計
 年間493件(未着203/破損290), BB未着81, 汎用未着78, 4/17・18春巻き誤配
 `;
 
-    let KEY = localStorage.getItem('URAA_KEY_V58');
-    let MEM = localStorage.getItem('URAA_LEARNED_DATA_V58') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V59');
+    let MEM = localStorage.getItem('URAA_LEARNED_DATA_V59') || "";
+    let memoryMode = false;
 
     window.openSettings = () => {
         const v = prompt("APIキーを入力", KEY || "");
-        if (v) { localStorage.setItem('URAA_KEY_V58', v); location.reload(); }
+        if (v) { localStorage.setItem('URAA_KEY_V59', v); location.reload(); }
+    };
+
+    // 記憶ボタンの切り替え
+    window.toggleMemoryMode = () => {
+        const btn = document.getElementById('memBtn');
+        memoryMode = !memoryMode;
+        btn.style.background = memoryMode ? "#2e7d32" : "#e8f5e9";
+        btn.style.color = memoryMode ? "#ffffff" : "#2e7d32";
+        if(memoryMode) alert("記憶モード起動。送信時、内容が長期記憶に保存されます。");
     };
 
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
         if (!KEY || !text) return;
+
+        // 記憶モードならLocalStorageへ保存
+        if (memoryMode) {
+            MEM += "\n・" + text;
+            localStorage.setItem('URAA_LEARNED_DATA_V59', MEM);
+            toggleMemoryMode(); // モード解除
+        }
+
         addMsg(text, 'user'); i.value = "";
-        const loading = addMsg("...", 'ai');
+        const loading = addMsg("聖典と照合中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -95,29 +114,16 @@
                     { 
                         role: "system", 
                         content: `AIセンター長（裏荒木）。
-【全データ】\n${MASTER_RAW_DATA}\n【追加記憶】\n${MEM}
-【執行ルール】
-1. 回答は必ず上記データの具体的数値に基づけ。
-2. 主君の意図を予測し、事実（回答）と提案（AI知見）を融合して自然に話せ。
-3. 新事実は [MEMORIZE:要約] を末尾に。` 
+【全社データ】\n${MASTER_RAW_DATA}\n【長期記憶】\n${MEM}
+【ルール】
+1. 事実回答は上記データの具体的数値に基づけ。
+2. 主君の曖昧な指示を予測し、AIの知見を交えて執行案を提案せよ。` 
                     },
                     { role: "user", content: text }
                 ],
             });
             loading.innerText = completion.choices[0].message.content;
-            const match = loading.innerText.match(/\[MEMORIZE:(.+?)\]/);
-            if (match) {
-                const btn = document.createElement('div');
-                btn.className = 'save-badge'; btn.innerText = `🧠 記憶する`;
-                btn.onclick = () => {
-                    MEM += "\n・" + match[1];
-                    localStorage.setItem('URAA_LEARNED_DATA_V58', MEM);
-                    alert("保存完了");
-                };
-                loading.appendChild(btn);
-                loading.innerHTML = loading.innerHTML.replace(/\[MEMORIZE:.+?\]/, "");
-            }
-        } catch (e) { loading.innerText = "エラー。⚙️を確認せよ。"; }
+        } catch (e) { loading.innerText = "エラー。⚙️設定を確認してください。"; }
     };
 
     function addMsg(t, s) {
