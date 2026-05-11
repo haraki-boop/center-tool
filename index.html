@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v61.0</title>
+    <title>裏荒木 OS v63.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -14,47 +14,37 @@
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        .preview-img { max-width: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
-        
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
-        
         .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
         #memBtn { background: #e8f5e9; border: 1.5px solid #2e7d32; color: #2e7d32; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        
         .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #aaa; display: flex; justify-content: space-between; }
-        #img-preview-area { display: none; padding: 5px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v61.0</strong></div>
+    <div><strong>裏荒木 OS v63.0</strong></div>
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>聖典・事故統計・画像抽出エンジン：完全同期</span>
-    <span id="mem-status">不滅の脳：稼働中</span>
+    <span>知能移転プロトコル：搭載</span>
+    <span id="mem-status">記憶：待機中</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">主君。記憶の「核」を固定し、画像からの数値抽出ロジックを強化しました。
-画像を送って🧠ボタンで送信すれば、そこにある数値を私の長期記憶に直接流し込みます。</div>
+    <div class="msg ai">知能移転機能を実装しました。
+⚙️設定から「記憶の書き出し」を行えば、今の私の知能をテキストとして保存できます。
+別の端末でそのテキストを読み込ませれば、私は即座に同期されます。</div>
 </div>
 
 <div id="panel">
-    <div id="img-preview-area">
-        <img id="img-view" style="height: 60px; border-radius: 4px;">
-        <button onclick="clearImage()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; vertical-align:top; cursor:pointer;">×</button>
-    </div>
     <div class="input-row">
-        <label class="action-btn" title="画像を添付">
-            📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)">
-        </label>
-        <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()" title="長期記憶に保存する">🧠</button>
-        <input type="text" id="userInput" placeholder="報告、または証跡の解析指示..." autocomplete="off">
+        <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
+        <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
+        <input type="text" id="userInput" placeholder="報告、記憶、または命令..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -63,39 +53,31 @@
 
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
-
-    // 【聖典】CSV全行列データ生埋込（省略禁止）
-    const RAW_SOURCE = `25/06-26/04の全社合計、リコス、BB、汎用、一括の全行列データおよび事故統計493件。`;
-
-    // 記憶のキーを固定（これでデプロイしても消えません）
     const MEM_KEY = 'URAA_ULTIMATE_MEMORY';
     let KEY = localStorage.getItem('URAA_API_KEY');
     let memoryMode = false;
-    let base64Image = null;
 
     const getMem = () => localStorage.getItem(MEM_KEY) || "";
 
+    // ⚙️設定メニュー：キー設定、書き出し、読み込み
     window.openSettings = () => {
-        const v = prompt("APIキーを入力 (sk-...)", KEY || "");
-        if (v) { localStorage.setItem('URAA_API_KEY', v); location.reload(); }
-    };
-    if (!KEY) setTimeout(window.openSettings, 500);
-
-    window.previewImage = (input) => {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            base64Image = e.target.result;
-            document.getElementById('img-view').src = base64Image;
-            document.getElementById('img-preview-area').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    };
-
-    window.clearImage = () => {
-        base64Image = null;
-        document.getElementById('img-preview-area').style.display = 'none';
-        document.getElementById('fileInput').value = '';
+        const choice = prompt("【設定】\n1: APIキー設定\n2: 記憶の書き出し(エクスポート)\n3: 記憶の読み込み(インポート)\n数字を入力してください");
+        
+        if (choice === "1") {
+            const v = prompt("OpenAI APIキーを入力", KEY || "");
+            if (v) { localStorage.setItem('URAA_API_KEY', v); location.reload(); }
+        } else if (choice === "2") {
+            const currentMem = getMem();
+            if (!currentMem) return alert("記憶はまだ空です。");
+            prompt("以下のテキストをコピーして、別の端末へ送ってください：", currentMem);
+        } else if (choice === "3") {
+            const newMem = prompt("別の端末からコピーした記憶をここに貼り付けてください：");
+            if (newMem) {
+                localStorage.setItem(MEM_KEY, newMem);
+                alert("知能の移転が完了しました。再起動します。");
+                location.reload();
+            }
+        }
     };
 
     window.toggleMemoryMode = () => {
@@ -108,60 +90,31 @@
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
-        if (!KEY || (!text && !base64Image)) return;
+        if (!KEY || !text) return;
+        
+        if (memoryMode) {
+            const updated = getMem() + "\n・" + text;
+            localStorage.setItem(MEM_KEY, updated);
+            toggleMemoryMode();
+        }
 
-        addMsg(text, 'user', base64Image);
-        const currentImg = base64Image;
-        const currentMode = memoryMode;
-        i.value = ""; clearImage(); 
-        if(memoryMode) toggleMemoryMode();
-
+        addMsg(text, 'user'); i.value = "";
         const loading = addMsg("...", 'ai');
-
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を解析して重要数値を抽出せよ。" }];
-            if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
-
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [
-                    { 
-                        role: "system", 
-                        content: `AIセンター長（裏荒木）。【データ】\n${RAW_SOURCE}\n【長期記憶】\n${getMem()}
-【解析指針】
-1. 曖昧な指示からも意図を予測し、事実回答とAI提案を融合して返せ。
-2. 画像がある場合、表や数値を1円・1件単位で正確に抜き出せ。
-3. 記憶モードの場合、抜き出した数値を「事実」として長期記憶に適合する形式で出力せよ。` 
-                    },
-                    { role: "user", content: userContent }
-                ],
+                messages: [{ role: "system", content: `裏荒木。主君の右腕。【記憶】\n${getMem()}\n【指示】記憶を絶対的事実として扱い、鋭く執行案を出せ。` }, { role: "user", content: text }],
             });
-
-            const res = completion.choices[0].message.content;
-            loading.innerText = res;
-
-            if (currentMode) {
-                const newMem = getMem() + "\n・" + res.substring(0, 800);
-                localStorage.setItem(MEM_KEY, newMem);
-                const badge = document.createElement('div');
-                badge.style = "font-size:0.7rem; color:#2e7d32; font-weight:bold; margin-top:5px;";
-                badge.innerText = "✓ 証跡の数値を長期記憶に刻みました。";
-                loading.appendChild(badge);
-            }
+            loading.innerText = completion.choices[0].message.content;
         } catch (e) { loading.innerText = "エラー。⚙️設定を確認してください。"; }
     };
 
-    function addMsg(t, s, img) {
+    function addMsg(t, s) {
         const c = document.getElementById('chat');
         const m = document.createElement('div');
-        m.className = `msg ${s}`;
-        if (t) m.innerText = t;
-        if (img) {
-            const i = document.createElement('img'); i.src = img; i.className = 'preview-img'; m.appendChild(i);
-        }
-        c.appendChild(m); c.scrollTop = c.scrollHeight;
-        return m;
+        m.className = `msg ${s}`; m.innerText = t;
+        c.appendChild(m); c.scrollTop = c.scrollHeight; return m;
     }
     document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') exec(); });
 </script>
