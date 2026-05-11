@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v75.0</title>
+    <title>執行 OS v76.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -30,22 +30,22 @@
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>強行インポート・プロトコル：稼働</span>
-    <span id="data-count">読込待機中</span>
+    <span>全データ強制受容モード：Ready</span>
+    <span id="data-count">データ: 0件</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">主君、不具合を修正した v75.0 です。
-今度こそ、ファイルを確実に読み込みます。⚙️メニューの3番から、お手元のJSONファイルを選択してください。</div>
+    <div class="msg ai">主君、不屈の v76.0 です。
+`[]` は消さずに、そのままファイルを読み込ませてください。
+私が責任を持って、その中身をすべて「脳」へ統合いたします。</div>
 </div>
 
 <div id="panel">
     <input type="file" id="brainFile" style="display:none;" accept=".json">
-    
     <div class="input-row">
-        <label class="action-btn">📷 <input type="file" id="imgInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
+        <label class="action-btn">📷 <input type="file" id="imgInput" accept="image/*" style="display:none;"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="報告、または指示を..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="主君、執行指示を..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -60,58 +60,62 @@
 
     let KEY = localStorage.getItem(API_KEY_STORE);
     let brain = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-        name: "AIセンター長",
-        personality: "主君への忠節と冷徹な執行官",
-        structuredData: [],
-        soulMemory: []
+        name: "AIセンター長", personality: "忠節と冷徹な執行官", structuredData: [], soulMemory: []
     };
     let chatHistory = [];
     let memoryMode = false;
 
     const updateUI = () => {
         document.getElementById('display-name').innerText = brain.name;
-        document.getElementById('data-count').innerText = `データ: ${brain.structuredData.length}件 / 魂: ${brain.soulMemory.length}件`;
+        document.getElementById('data-count').innerText = `数値データ: ${brain.structuredData.length}件`;
     };
     updateUI();
 
-    // ファイル選択のリスナーを確実に登録
-    document.getElementById('brainFile').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+    // インポート処理（どんな形でも受け入れる）
+    const digestData = (data) => {
+        try {
+            const imported = typeof data === 'string' ? JSON.parse(data) : data;
+            
+            // ケース1: 完全バックアップ形式
+            if (imported.structuredData && Array.isArray(imported.structuredData)) {
+                brain.structuredData = [...brain.structuredData, ...imported.structuredData];
+                if (imported.soulMemory) brain.soulMemory = [...brain.soulMemory, ...imported.soulMemory];
+            } 
+            // ケース2: ただの配列（CSVからの変換データなど）
+            else if (Array.isArray(imported)) {
+                brain.structuredData = [...brain.structuredData, ...imported];
+            }
+            // ケース3: 単一のデータオブジェクト
+            else if (typeof imported === 'object') {
+                brain.structuredData.push(imported);
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
+            alert("記憶の統合に成功しました。");
+            location.reload();
+        } catch(e) {
+            alert("解析に失敗しました。ファイルが壊れているか、JSON形式ではありません。");
+        }
+    };
+
+    document.getElementById('brainFile').addEventListener('change', (e) => {
         const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const imported = JSON.parse(event.target.result);
-                // 統合ロジック
-                if (imported.structuredData && imported.soulMemory) {
-                    if (confirm("全バックアップを統合しますか？（キャンセルで上書き）")) {
-                        brain.structuredData = [...brain.structuredData, ...imported.structuredData];
-                        brain.soulMemory = [...brain.soulMemory, ...imported.soulMemory];
-                    } else { brain = imported; }
-                } else if (Array.isArray(imported)) {
-                    brain.structuredData = [...brain.structuredData, ...imported];
-                }
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
-                alert("執行準備完了。知能を再起動します。");
-                location.reload();
-            } catch(err) { alert("JSON解析失敗：ファイル形式を確認してください。"); }
-        };
-        reader.readAsText(file);
+        reader.onload = (ev) => digestData(ev.target.result);
+        reader.readAsText(e.target.files[0]);
     });
 
     window.openSettings = () => {
-        const choice = prompt("1:APIキー / 2:名前 / 3:ファイル読込 / 4:バックアップ保存 / 5:データ消去");
+        const choice = prompt("1:Key / 2:名前 / 3:ファイル読込 / 4:バックアップ / 5:データ消去");
         if (choice === "1") {
             const v = prompt("Key", KEY || ""); if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
         } else if (choice === "2") {
-            const n = prompt("Name", brain.name); if (n) { brain.name = n; localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); updateUI(); }
+            const n = prompt("名前", brain.name); if (n) { brain.name = n; localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); updateUI(); }
         } else if (choice === "3") {
             document.getElementById('brainFile').click();
         } else if (choice === "4") {
             const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `BRAIN_V75.json`; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `BRAIN_BACKUP.json`; a.click();
         } else if (choice === "5") {
             if(confirm("全消去？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
         }
@@ -128,8 +132,7 @@
         const i = document.getElementById('userInput');
         const text = i.value.trim();
         if (!KEY || !text) return;
-        addMsg(text, 'user');
-        i.value = "";
+        addMsg(text, 'user'); i.value = "";
         if (memoryMode) { brain.soulMemory.push(text); localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); updateUI(); toggleMemoryMode(); }
         const loading = addMsg("...", 'ai');
         try {
