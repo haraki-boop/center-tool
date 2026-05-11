@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="tab-title">執行 OS v67.0</title>
+    <title id="tab-title">執行 OS v68.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -21,7 +21,6 @@
         #memBtn { background: #e8f5e9; border: 1.5px solid #2e7d32; color: #2e7d32; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #aaa; display: flex; justify-content: space-between; }
-        #img-preview-area { display: none; padding: 5px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -31,25 +30,17 @@
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>構造化データ(JSON) × 魂の記憶：統合稼働中</span>
-    <span id="mem-status">不滅の脳：同期完了</span>
+    <span>文脈維持エンジン：搭載 (履歴 10件保持)</span>
+    <span id="mem-status">パンク防止プロトコル：稼働中</span>
 </div>
 
-<div id="chat">
-    <div class="msg ai" id="welcome-msg">主君、お待たせしました。
-これまでの「魂の記憶（性格・思考）」を保護しつつ、数値を完璧に扱うための「構造化データ」機能を搭載しました。
-⚙️から「CSVデータ登録」を行えば、Excel等の数値を一括で流し込めます。</div>
-</div>
+<div id="chat"></div>
 
 <div id="panel">
-    <div id="img-preview-area">
-        <img id="img-view" style="height: 60px; border-radius: 4px;">
-        <button onclick="clearImage()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; vertical-align:top; cursor:pointer;">×</button>
-    </div>
     <div class="input-row">
         <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="報告、思考の調整、数値の質問..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="会話の流れを読んで返答します..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -59,56 +50,30 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
     
-    // キーの固定
-    const MEM_KEY = 'URAA_ULTIMATE_MEMORY';      // 魂の記憶（性格・思考）
-    const DATA_KEY = 'URAA_STRUCTURED_DATA';     // 構造化データ（CSV数値）
+    const MEM_KEY = 'URAA_ULTIMATE_MEMORY';
+    const DATA_KEY = 'URAA_STRUCTURED_DATA';
     const NAME_KEY = 'URAA_CUSTOM_NAME';
     const API_KEY_STORE = 'URAA_API_KEY';
 
     let KEY = localStorage.getItem(API_KEY_STORE);
+    let chatHistory = []; // 文脈維持用の短期記憶
     let memoryMode = false;
-    let base64Image = null;
     let customName = localStorage.getItem(NAME_KEY) || "AIセンター長";
 
-    const getMem = () => localStorage.getItem(MEM_KEY) || "（魂の記憶なし）";
-    const getData = () => localStorage.getItem(DATA_KEY) || "（数値データなし）";
+    const getMem = () => localStorage.getItem(MEM_KEY) || "";
+    const getData = () => localStorage.getItem(DATA_KEY) || "";
 
     document.getElementById('display-name').innerText = customName;
 
     window.openSettings = () => {
-        const choice = prompt(`【執行設定】\n1: APIキー\n2: 名前変更\n3: CSV数値データの登録・修正\n4: 記憶のエクスポート\n5: 記憶のインポート\n6: 記憶の全消去`);
-        
+        const choice = prompt(`1: APIキー\n2: 名前\n3: CSV登録\n4: 履歴リセット\n5: 全消去`);
         if (choice === "1") {
             const v = prompt("Key", KEY || ""); if (v) localStorage.setItem(API_KEY_STORE, v); location.reload();
-        } else if (choice === "2") {
-            const n = prompt("Name", customName); if (n) localStorage.setItem(NAME_KEY, n); location.reload();
-        } else if (choice === "3") {
-            const d = prompt("Excel等からコピーした数値データ、またはJSONを入力してください（この内容は数値データベースに保存されます）:", getData());
-            if (d) { localStorage.setItem(DATA_KEY, d); alert("数値データを同期しました。"); }
         } else if (choice === "4") {
-            prompt("魂の記憶をコピー:", getMem());
+            chatHistory = []; alert("会話の文脈をリセットしました。");
         } else if (choice === "5") {
-            const im = prompt("貼り付け:"); if (im) { localStorage.setItem(MEM_KEY, im); location.reload(); }
-        } else if (choice === "6") {
-            if(confirm("全消去しますか？")) { localStorage.clear(); location.reload(); }
+            localStorage.clear(); location.reload();
         }
-    };
-
-    window.previewImage = (input) => {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            base64Image = e.target.result;
-            document.getElementById('img-view').src = base64Image;
-            document.getElementById('img-preview-area').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    };
-
-    window.clearImage = () => {
-        base64Image = null;
-        document.getElementById('img-preview-area').style.display = 'none';
-        document.getElementById('fileInput').value = '';
     };
 
     window.toggleMemoryMode = () => {
@@ -121,50 +86,54 @@
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
-        if (!KEY || (!text && !base64Image)) return;
+        if (!KEY || !text) return;
 
-        addMsg(text, 'user', base64Image);
-        const currentImg = base64Image;
-        const currentMode = memoryMode;
-        i.value = ""; clearImage(); if(memoryMode) toggleMemoryMode();
+        addMsg(text, 'user');
+        i.value = "";
+        
+        // 🧠モードなら長期記憶へ
+        if (memoryMode) {
+            localStorage.setItem(MEM_KEY, getMem() + "\n・" + text);
+            toggleMemoryMode();
+        }
 
         const loading = addMsg("...", 'ai');
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を解析せよ。" }];
-            if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
+            
+            // AIに渡すメッセージ群の構築
+            const messages = [
+                { role: "system", content: `あなたは${customName}です。
+【魂の記憶（性格・思考）】\n${getMem()}\n
+【構造化数値データ】\n${getData()}\n
+【指示】
+1. 直近の会話の流れ（History）を重視して応答せよ。
+2. 数値は構造化データから正確に引用せよ。` }
+            ];
+
+            // 直近の履歴を追加（パンク防止のため最新10件に制限）
+            chatHistory.slice(-10).forEach(h => messages.push(h));
+            messages.push({ role: "user", content: text });
 
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [{ 
-                    role: "system", 
-                    content: `あなたは${customName}です。
-【魂の記憶（性格・思考・背景）】\n${getMem()}\n
-【構造化数値データ（CSV等）】\n${getData()}\n
-【指示】
-1. 魂の記憶に基づいた性格と論理で対話せよ。
-2. 数値に関する質問は、構造化データから1円・1件の狂いもなく抽出せよ。
-3. 曖昧な発言は主君の意図を予測して補完せよ。` 
-                }, { role: "user", content: userContent }],
+                messages: messages,
             });
+
             const res = completion.choices[0].message.content;
             loading.innerText = res;
 
-            if (currentMode) {
-                localStorage.setItem(MEM_KEY, getMem() + "\n・" + (currentImg ? "画像解析結果: " : "") + res);
-                const b = document.createElement('div');
-                b.style = "font-size:0.7rem; color:#2e7d32; font-weight:bold; margin-top:5px;";
-                b.innerText = "✓ 魂の記憶に刻みました。";
-                loading.appendChild(b);
-            }
-        } catch (e) { loading.innerText = "エラー。⚙️設定を確認してください。"; }
+            // 履歴に保存
+            chatHistory.push({ role: "user", content: text });
+            chatHistory.push({ role: "assistant", content: res });
+
+        } catch (e) { loading.innerText = "執行エラー。"; }
     };
 
-    function addMsg(t, s, img) {
+    function addMsg(t, s) {
         const c = document.getElementById('chat');
         const m = document.createElement('div');
-        m.className = `msg ${s}`; if (t) m.innerText = t;
-        if (img) { const i = document.createElement('img'); i.src = img; i.className = 'preview-img'; m.appendChild(i); }
+        m.className = `msg ${s}`; m.innerText = t;
         c.appendChild(m); c.scrollTop = c.scrollHeight; return m;
     }
     document.getElementById('userInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') exec(); });
