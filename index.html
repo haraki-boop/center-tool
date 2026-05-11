@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="tab-title">執行 OS v65.0</title>
+    <title id="tab-title">執行 OS v67.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -14,8 +14,6 @@
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        .preview-img { max-width: 200px; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
-        
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
@@ -33,14 +31,14 @@
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>画像解析・知識防衛エンジン：復旧完了</span>
-    <span id="mem-status">同期：安定</span>
+    <span>構造化データ(JSON) × 魂の記憶：統合稼働中</span>
+    <span id="mem-status">不滅の脳：同期完了</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">画像機能、再装填しました。
-主君、知識（脳みそ）も名前も以前のまま守られています。
-証跡の画像をいつでもお送りください。</div>
+    <div class="msg ai" id="welcome-msg">主君、お待たせしました。
+これまでの「魂の記憶（性格・思考）」を保護しつつ、数値を完璧に扱うための「構造化データ」機能を搭載しました。
+⚙️から「CSVデータ登録」を行えば、Excel等の数値を一括で流し込めます。</div>
 </div>
 
 <div id="panel">
@@ -51,7 +49,7 @@
     <div class="input-row">
         <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="報告、または証跡の指示..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="報告、思考の調整、数値の質問..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -61,7 +59,9 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
     
-    const MEM_KEY = 'URAA_ULTIMATE_MEMORY';
+    // キーの固定
+    const MEM_KEY = 'URAA_ULTIMATE_MEMORY';      // 魂の記憶（性格・思考）
+    const DATA_KEY = 'URAA_STRUCTURED_DATA';     // 構造化データ（CSV数値）
     const NAME_KEY = 'URAA_CUSTOM_NAME';
     const API_KEY_STORE = 'URAA_API_KEY';
 
@@ -70,25 +70,27 @@
     let base64Image = null;
     let customName = localStorage.getItem(NAME_KEY) || "AIセンター長";
 
-    const getMem = () => localStorage.getItem(MEM_KEY) || "";
+    const getMem = () => localStorage.getItem(MEM_KEY) || "（魂の記憶なし）";
+    const getData = () => localStorage.getItem(DATA_KEY) || "（数値データなし）";
 
-    // UI初期化
     document.getElementById('display-name').innerText = customName;
-    document.title = customName + " OS v65.0";
 
     window.openSettings = () => {
-        const choice = prompt(`【設定】\n現在の名前: ${customName}\n1: APIキー設定\n2: 名前を変更する\n3: 記憶のエクスポート\n4: 記憶のインポート\n数字を選択:`);
+        const choice = prompt(`【執行設定】\n1: APIキー\n2: 名前変更\n3: CSV数値データの登録・修正\n4: 記憶のエクスポート\n5: 記憶のインポート\n6: 記憶の全消去`);
+        
         if (choice === "1") {
-            const v = prompt("OpenAI APIキーを入力", KEY || "");
-            if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
+            const v = prompt("Key", KEY || ""); if (v) localStorage.setItem(API_KEY_STORE, v); location.reload();
         } else if (choice === "2") {
-            const n = prompt("新しい名前を入力:", customName);
-            if (n) { localStorage.setItem(NAME_KEY, n); location.reload(); }
+            const n = prompt("Name", customName); if (n) localStorage.setItem(NAME_KEY, n); location.reload();
         } else if (choice === "3") {
-            prompt("記憶をコピー:", getMem());
+            const d = prompt("Excel等からコピーした数値データ、またはJSONを入力してください（この内容は数値データベースに保存されます）:", getData());
+            if (d) { localStorage.setItem(DATA_KEY, d); alert("数値データを同期しました。"); }
         } else if (choice === "4") {
-            const im = prompt("貼り付け:");
-            if (im) { localStorage.setItem(MEM_KEY, im); location.reload(); }
+            prompt("魂の記憶をコピー:", getMem());
+        } else if (choice === "5") {
+            const im = prompt("貼り付け:"); if (im) { localStorage.setItem(MEM_KEY, im); location.reload(); }
+        } else if (choice === "6") {
+            if(confirm("全消去しますか？")) { localStorage.clear(); location.reload(); }
         }
     };
 
@@ -126,30 +128,36 @@
         const currentMode = memoryMode;
         i.value = ""; clearImage(); if(memoryMode) toggleMemoryMode();
 
-        const loading = addMsg("解析中...", 'ai');
+        const loading = addMsg("...", 'ai');
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            const userContent = [{ type: "text", text: text || "画像を解析してください。" }];
+            const userContent = [{ type: "text", text: text || "画像を解析せよ。" }];
             if (currentImg) userContent.push({ type: "image_url", image_url: { url: currentImg } });
 
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [{ 
                     role: "system", 
-                    content: `あなたは${customName}です。主君の右腕として執行せよ。\n【記憶】\n${getMem()}\n【指示】記憶にあるデータを絶対的事実とし、鋭く対話せよ。画像解析時は数値を正確に抽出せよ。` 
+                    content: `あなたは${customName}です。
+【魂の記憶（性格・思考・背景）】\n${getMem()}\n
+【構造化数値データ（CSV等）】\n${getData()}\n
+【指示】
+1. 魂の記憶に基づいた性格と論理で対話せよ。
+2. 数値に関する質問は、構造化データから1円・1件の狂いもなく抽出せよ。
+3. 曖昧な発言は主君の意図を予測して補完せよ。` 
                 }, { role: "user", content: userContent }],
             });
             const res = completion.choices[0].message.content;
             loading.innerText = res;
 
             if (currentMode) {
-                localStorage.setItem(MEM_KEY, getMem() + "\n・" + (currentImg ? "画像解析結果: " : "") + res.substring(0, 1000));
+                localStorage.setItem(MEM_KEY, getMem() + "\n・" + (currentImg ? "画像解析結果: " : "") + res);
                 const b = document.createElement('div');
                 b.style = "font-size:0.7rem; color:#2e7d32; font-weight:bold; margin-top:5px;";
-                b.innerText = "✓ 長期記憶に保存しました。";
+                b.innerText = "✓ 魂の記憶に刻みました。";
                 loading.appendChild(b);
             }
-        } catch (e) { loading.innerText = "エラー。⚙️を確認。"; }
+        } catch (e) { loading.innerText = "エラー。⚙️設定を確認してください。"; }
     };
 
     function addMsg(t, s, img) {
