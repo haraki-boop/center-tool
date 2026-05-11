@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v72.0</title>
+    <title>執行 OS v74.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
         header { background: var(--p); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 30; }
         .config-btn { background: none; border: none; color: white; font-size: 1.4rem; cursor: pointer; }
-        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
+        #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
@@ -20,7 +20,7 @@
         .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; }
         #memBtn { background: #e8f5e9; border: 1.5px solid #2e7d32; color: #2e7d32; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .status-bar { background: #111; font-size: 0.6rem; padding: 3px 15px; color: #00ff00; display: flex; justify-content: space-between; }
+        .status-bar { background: #111; font-size: 0.65rem; padding: 4px 15px; color: #00ff00; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -30,17 +30,23 @@
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>記憶絶対防衛プロトコル：オンライン</span>
-    <span id="mem-count">魂の記憶：同期済み</span>
+    <span>統合知能：多層蓄積モード稼働</span>
+    <span id="data-count">データ数: 0件</span>
 </div>
 
-<div id="chat"></div>
+<div id="chat">
+    <div class="msg ai">主君、お待たせしました。v74.0 執行開始します。
+これからは、複数のファイルを順番に読み込ませて記憶を積み上げることが可能です。
+記憶を統合したい場合は⚙️メニューの3番をお選びください。</div>
+</div>
 
 <div id="panel">
+    <input type="file" id="brainFile" style="display:none;" accept=".json" onchange="importFile(this)">
+    
     <div class="input-row">
-        <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
+        <label class="action-btn">📷 <input type="file" id="imgInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="主君、私はすべてを覚えています..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="メッセージを入力..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -50,60 +56,91 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
     
-    // 【絶対変更禁止】このキーが主君の全知能を守ります
     const STORAGE_KEY = 'URAA_INTEGRATED_BRAIN';
     const API_KEY_STORE = 'URAA_API_KEY';
 
     let KEY = localStorage.getItem(API_KEY_STORE);
     let brain = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         name: "AIセンター長",
-        personality: "主君への忠節と冷徹な執行",
+        personality: "主君への忠節と冷徹な執行官",
         structuredData: [],
         soulMemory: []
     };
     let chatHistory = [];
     let memoryMode = false;
 
-    document.getElementById('display-name').innerText = brain.name;
+    // UI初期更新
+    const updateUI = () => {
+        document.getElementById('display-name').innerText = brain.name;
+        document.getElementById('data-count').innerText = `データ数: ${brain.structuredData.length}件 / 魂: ${brain.soulMemory.length}件`;
+    };
+    updateUI();
 
     window.openSettings = () => {
         const choice = prompt(
-            "【記憶防衛メニュー】\n" +
+            "【執行設定 v74.0】\n" +
             "1: APIキー設定\n" +
-            "2: 名前を変更する\n" +
-            "3: 記憶のエクスポート（引継ぎコード発行）\n" +
-            "4: 記憶のインポート（引継ぎコード適用）\n" +
-            "5: 数値データ直接編集"
+            "2: 名前変更\n" +
+            "3: ファイルから記憶を追加/統合 (.json)\n" +
+            "4: 現在の全知能をバックアップ保存 (DL)\n" +
+            "5: 数値データの直接編集\n" +
+            "6: 記憶を全リセット（初期化）"
         );
         
         if (choice === "1") {
-            const v = prompt("Key", KEY || ""); 
-            if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
+            const v = prompt("Key", KEY || ""); if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
         } else if (choice === "2") {
-            const n = prompt("Name", brain.name); 
-            if (n) { brain.name = n; saveBrain(); location.reload(); }
+            const n = prompt("Name", brain.name); if (n) { brain.name = n; saveBrain(); updateUI(); }
         } else if (choice === "3") {
-            prompt("このコードをコピーしてバックアップしてください：", JSON.stringify(brain));
+            document.getElementById('brainFile').click();
         } else if (choice === "4") {
-            const im = prompt("知能コードを貼り付けてください：");
-            if (im) {
-                try {
-                    localStorage.setItem(STORAGE_KEY, im);
-                    alert("知能を完全に復元しました。");
-                    location.reload();
-                } catch(e) { alert("不正なコードです。"); }
-            }
+            downloadBrain();
         } else if (choice === "5") {
-            const dataStr = prompt("数値データ(JSON)の編集：", JSON.stringify(brain.structuredData));
-            if (dataStr) {
-                try {
-                    brain.structuredData = JSON.parse(dataStr);
-                    saveBrain();
-                    alert("数値を更新しました。");
-                } catch(e) { alert("JSON形式エラー"); }
-            }
+            const d = prompt("Data JSON:", JSON.stringify(brain.structuredData));
+            if (d) { try { brain.structuredData = JSON.parse(d); saveBrain(); updateUI(); } catch(e) {alert("形式不正");} }
+        } else if (choice === "6") {
+            if(confirm("全記憶を消去します。よろしいですか？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
         }
     };
+
+    // 【進化】統合インポート処理
+    window.importFile = (input) => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                
+                // 完全なバックアップファイルの場合
+                if (imported.structuredData && imported.soulMemory) {
+                    if (confirm("完全なバックアップを検出しました。現在の記憶に「統合」しますか？（「いいえ」で上書き）")) {
+                        brain.structuredData = [...brain.structuredData, ...imported.structuredData];
+                        brain.soulMemory = [...brain.soulMemory, ...imported.soulMemory];
+                    } else {
+                        brain = imported;
+                    }
+                } 
+                // ただの数値配列データの場合
+                else if (Array.isArray(imported)) {
+                    brain.structuredData = [...brain.structuredData, ...imported];
+                }
+                
+                saveBrain();
+                alert("記憶の統合に成功しました。");
+                location.reload();
+            } catch(err) { alert("JSONファイルの解析に失敗しました。"); }
+        };
+        reader.readAsText(file);
+    };
+
+    function downloadBrain() {
+        const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `BRAIN_V74_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    }
 
     function saveBrain() { localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); }
 
@@ -118,26 +155,22 @@
         const i = document.getElementById('userInput');
         const text = i.value.trim();
         if (!KEY || !text) return;
-
         addMsg(text, 'user');
         i.value = "";
         
-        if (memoryMode) {
-            brain.soulMemory.push(text);
-            saveBrain();
-            toggleMemoryMode();
+        if (memoryMode) { 
+            brain.soulMemory.push(text); 
+            saveBrain(); 
+            updateUI(); 
+            toggleMemoryMode(); 
         }
 
-        const loading = addMsg("分析中...", 'ai');
+        const loading = addMsg("...", 'ai');
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
             const messages = [{ 
                 role: "system", 
-                content: `あなたは${brain.name}です。
-性格設定: ${brain.personality}
-魂の記憶: ${JSON.stringify(brain.soulMemory)}
-数値データ: ${JSON.stringify(brain.structuredData)}
-指示: 全ての記憶を絶対的な事実として扱い、主君の意図を汲んで冷徹に執行せよ。` 
+                content: `あなたは${brain.name}です。主君の右腕として冷徹に執行せよ。\n性格: ${brain.personality}\n魂の記憶: ${JSON.stringify(brain.soulMemory)}\n数値データ: ${JSON.stringify(brain.structuredData)}\n【指示】過去の会話の流れを汲みつつ、数値データは絶対的な事実として引用せよ。` 
             }];
             chatHistory.slice(-10).forEach(h => messages.push(h));
             messages.push({ role: "user", content: text });
@@ -147,7 +180,7 @@
             loading.innerText = res;
             chatHistory.push({ role: "user", content: text });
             chatHistory.push({ role: "assistant", content: res });
-        } catch (e) { loading.innerText = "エラー：通信を確認してください。"; }
+        } catch (e) { loading.innerText = "エラーが発生しました。設定を確認してください。"; }
     };
 
     function addMsg(t, s) {
