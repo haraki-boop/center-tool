@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v63.0</title>
+    <title id="tab-title">執行 OS v64.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -26,25 +26,24 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v63.0</strong></div>
+    <div><strong id="display-name">AIセンター長</strong></div>
     <button class="config-btn" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span>知能移転プロトコル：搭載</span>
-    <span id="mem-status">記憶：待機中</span>
+    <span>知識・記憶：完全防衛稼働中</span>
+    <span id="mem-status">同期：完了</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">知能移転機能を実装しました。
-⚙️設定から「記憶の書き出し」を行えば、今の私の知能をテキストとして保存できます。
-別の端末でそのテキストを読み込ませれば、私は即座に同期されます。</div>
+    <div class="msg ai" id="welcome-msg">主君、お待たせいたしました。
+脳みそ（知識データ）はそのまま、私の「名前」を主君が決めることができます。⚙️から設定してください。</div>
 </div>
 
 <div id="panel">
     <div class="input-row">
         <label class="action-btn">📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="報告、記憶、または命令..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="メッセージを入力..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -53,30 +52,40 @@
 
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
+    
+    // 【絶対防衛】記憶のキーを固定
     const MEM_KEY = 'URAA_ULTIMATE_MEMORY';
-    let KEY = localStorage.getItem('URAA_API_KEY');
+    const NAME_KEY = 'URAA_CUSTOM_NAME';
+    const API_KEY_STORE = 'URAA_API_KEY';
+
+    let KEY = localStorage.getItem(API_KEY_STORE);
     let memoryMode = false;
+    let customName = localStorage.getItem(NAME_KEY) || "AIセンター長";
 
     const getMem = () => localStorage.getItem(MEM_KEY) || "";
 
-    // ⚙️設定メニュー：キー設定、書き出し、読み込み
+    // UI初期化
+    document.getElementById('display-name').innerText = customName;
+    document.getElementById('tab-title').innerText = customName + " OS v64.0";
+
     window.openSettings = () => {
-        const choice = prompt("【設定】\n1: APIキー設定\n2: 記憶の書き出し(エクスポート)\n3: 記憶の読み込み(インポート)\n数字を入力してください");
+        const choice = prompt(`【設定】\n現在の名前: ${customName}\n1: APIキー設定\n2: 名前を変更する\n3: 記憶のエクスポート\n4: 記憶のインポート\n数字を選択:`);
         
         if (choice === "1") {
             const v = prompt("OpenAI APIキーを入力", KEY || "");
-            if (v) { localStorage.setItem('URAA_API_KEY', v); location.reload(); }
+            if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
         } else if (choice === "2") {
-            const currentMem = getMem();
-            if (!currentMem) return alert("記憶はまだ空です。");
-            prompt("以下のテキストをコピーして、別の端末へ送ってください：", currentMem);
-        } else if (choice === "3") {
-            const newMem = prompt("別の端末からコピーした記憶をここに貼り付けてください：");
-            if (newMem) {
-                localStorage.setItem(MEM_KEY, newMem);
-                alert("知能の移転が完了しました。再起動します。");
+            const n = prompt("新しい名前を入力してください:", customName);
+            if (n) {
+                localStorage.setItem(NAME_KEY, n);
+                alert("名前を変更しました。");
                 location.reload();
             }
+        } else if (choice === "3") {
+            prompt("記憶をコピーしてください:", getMem());
+        } else if (choice === "4") {
+            const im = prompt("貼り付けてください:");
+            if (im) { localStorage.setItem(MEM_KEY, im); alert("完了"); location.reload(); }
         }
     };
 
@@ -93,8 +102,7 @@
         if (!KEY || !text) return;
         
         if (memoryMode) {
-            const updated = getMem() + "\n・" + text;
-            localStorage.setItem(MEM_KEY, updated);
+            localStorage.setItem(MEM_KEY, getMem() + "\n・" + text);
             toggleMemoryMode();
         }
 
@@ -104,10 +112,13 @@
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [{ role: "system", content: `裏荒木。主君の右腕。【記憶】\n${getMem()}\n【指示】記憶を絶対的事実として扱い、鋭く執行案を出せ。` }, { role: "user", content: text }],
+                messages: [{ 
+                    role: "system", 
+                    content: `あなたは${customName}です。主君の右腕として執行せよ。\n【記憶】\n${getMem()}\n【指示】記憶にあるデータを絶対的な事実とし、鋭く対話せよ。` 
+                }, { role: "user", content: text }],
             });
             loading.innerText = completion.choices[0].message.content;
-        } catch (e) { loading.innerText = "エラー。⚙️設定を確認してください。"; }
+        } catch (e) { loading.innerText = "エラー。⚙️を確認してください。"; }
     };
 
     function addMsg(t, s) {
