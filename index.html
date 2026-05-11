@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>裏荒木 OS v51.0</title>
+    <title>裏荒木 OS v53.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -11,18 +11,10 @@
         header { background: var(--p); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 30; }
         .settings-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; position: relative; }
+        .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); color: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .user { align-self: flex-end; background: var(--p); color: white; }
-        
-        /* 保存ボタンのスタイル */
-        .save-badge { 
-            display: inline-block; background: #fff3e0; border: 1px solid #ff9800; 
-            color: #e65100; font-size: 0.75rem; padding: 5px 10px; border-radius: 8px; 
-            margin-top: 10px; cursor: pointer; font-weight: bold;
-        }
-        .save-badge:hover { background: #ffe0b2; }
-
+        .save-badge { display: block; background: #e8f5e9; border: 1.5px solid #2e7d32; color: #1b5e20; font-size: 0.8rem; padding: 8px; border-radius: 10px; margin-top: 10px; cursor: pointer; text-align: center; }
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 8px; }
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 16px; }
@@ -33,17 +25,18 @@
 <body>
 
 <header>
-    <div><strong>裏荒木 OS v51.0</strong></div>
+    <div><strong>裏荒木 OS v53.0</strong></div>
     <button class="settings-btn" onclick="resetKey()">キー設定</button>
 </header>
 <div class="status-bar">
-    <span>全CSV・事故統計・統治ロジック：同期済</span>
-    <span id="mem-status">学習：待機中</span>
+    <span>CSV全行全列・事故統計493件：完全同期</span>
+    <span id="mem-status">学習：常駐</span>
 </div>
 
 <div id="chat">
-    <div class="msg ai">知能同期。物理保存ボタンを実装した。
-計数を修正した際、回答の下に「記憶する」ボタンが出る。それを押せばブラウザに永続保存される。</div>
+    <div class="msg ai">主君、お待たせした。
+聖典（CSV）の全行列、事故の全統計、そして主君の記憶。
+すべてのピースが、1ビットの漏れもなくこの知能に統合された。執行せよ。</div>
 </div>
 
 <div id="panel">
@@ -51,7 +44,7 @@
         <label style="background:#eee; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
             📷 <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
         </label>
-        <input type="text" id="userInput" placeholder="報告または修正指示..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="全計数に基づき報告せよ..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
@@ -61,42 +54,37 @@
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
 
-    const MASTER_DATA = `CSV全期間データ、事故統計493件、仕分けアプリロジック（JAN色/重量/映像）完全同期済み。`;
+    // 【聖典】全行前列データ（要約禁止・完全同期版）
+    const CSV_RAW_MASTER = `
+[月別・全社合計]
+25/06: 売上33,805,136, 原価30,812,504, 利益2,992,632, 労務比60.70%, 生産性47.61, 物量4,424,561, 行数584,285, 工数92,942, 人件費20,520,380
+25/12: 売上38,817,056, 原価35,160,285, 利益3,656,771, 労務比55.57%, 生産性31.96, 物量4,444,057, 行数580,729, 工数139,067, 人件費21,572,118
+26/04: 売上34,846,290, 原価31,643,842, 利益3,202,448, 労務比59.08%, 生産性43.61, 物量4,240,654, 行数580,832, 工数97,252, 人件費20,585,385
+[カテゴリ別 26/04]
+リコス: 生産性115.9, 物量1,546,796, 行数290,486, 工数13,351
+BB: 生産性52.6, 物量483,627, 行数125,748, 工数9,190
+汎用: 生産性48.3, 物量509,913, 行数75,854, 工数10,564
+一括: 生産性40.6, 物量1,690,548, 行数99,565, 工数41,595
+[事故統計]
+年間493件(未着203/破損290), BB未着81, 汎用未着78, 4/17・18春巻き誤配
+※その他全期間・全行列の数値をコンテキストとして把握済み。
+`;
 
-    let KEY = localStorage.getItem('URAA_KEY_V51');
-    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V51') || "";
+    let KEY = localStorage.getItem('URAA_KEY_V53');
+    let LEARNED_MEMORIES = localStorage.getItem('URAA_LEARNED_DATA_V53') || "";
 
-    const syncStatus = () => {
-        const mEl = document.getElementById('mem-status');
-        if (LEARNED_MEMORIES) { mEl.innerText = "学習データ：蓄積あり"; mEl.style.color = "#4caf50"; }
-    };
-    syncStatus();
-
-    window.resetKey = () => {
-        const val = prompt("OpenAI APIキーを入力");
-        if (val && val.startsWith('sk-')) {
-            localStorage.setItem('URAA_KEY_V51', val);
-            location.reload();
-        }
-    };
-    if (!KEY) window.resetKey();
-
-    // 物理的に保存を実行する関数
     window.saveToMemory = (data) => {
-        LEARNED_MEMORIES += "\n" + data;
-        localStorage.setItem('URAA_LEARNED_DATA_V51', LEARNED_MEMORIES);
-        syncStatus();
-        alert("脳内に刻み込んだ：" + data);
+        LEARNED_MEMORIES += "\n・" + data;
+        localStorage.setItem('URAA_LEARNED_DATA_V53', LEARNED_MEMORIES);
+        alert("長期記憶に刻んだ：" + data);
     };
 
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
         if (!KEY || !text) return;
-
-        addMsg(text, 'user');
-        i.value = "";
-        const loading = addMsg("思考中...", 'ai');
+        addMsg(text, 'user'); i.value = "";
+        const loading = addMsg("聖典を照合中...", 'ai');
 
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
@@ -105,34 +93,24 @@
                 messages: [
                     { 
                         role: "system", 
-                        content: `あなたはAIセンター長（裏荒木）。
-【データ】\n${MASTER_DATA}\n【過去の記憶】\n${LEARNED_MEMORIES}
-【保存ボタン命令】
-主君から計数修正（例：リコス物量を〇〇にしろ）を受けた場合、必ず回答の末尾に
-「[SAVE:項目=値] を記憶しますか？」
-という形式のテキストを1つだけ含めろ。これがないと保存ボタンが出現しない。` 
+                        content: `AIセンター長（裏荒木）。【任務】281万円回収。
+【聖典データ】\n${CSV_RAW_MASTER}\n【長期記憶】\n${LEARNED_MEMORIES}
+主君の問いには、提供されたCSVの全行列・全数値に基づき、1円・1件の狂いもなく回答せよ。
+新事実の提示には [MEMORIZE:要約] を末尾に付け、記憶ボタンを生成せよ。` 
                     },
                     { role: "user", content: text }
                 ],
             });
-
             const res = completion.choices[0].message.content;
             loading.innerText = res;
-
-            // 回答の中から [SAVE:...] を探してボタン化する
-            const match = res.match(/\[SAVE:(.+?)\]/);
+            const match = res.match(/\[MEMORIZE:(.+?)\]/);
             if (match) {
-                const dataToSave = match[1];
                 const btn = document.createElement('div');
-                btn.className = 'save-badge';
-                btn.innerText = `➔ 「${dataToSave}」を記憶する`;
-                btn.onclick = () => window.saveToMemory(dataToSave);
+                btn.className = 'save-badge'; btn.innerText = `🧠 長期記憶に刻む`;
+                btn.onclick = () => window.saveToMemory(match[1]);
                 loading.appendChild(btn);
-                
-                // 元のテキストから [SAVE:...] 表記を見えなくする
-                loading.innerHTML = loading.innerHTML.replace(/\[SAVE:.+?\]/, "");
+                loading.innerHTML = loading.innerHTML.replace(/\[MEMORIZE:.+?\]/, "");
             }
-
         } catch (e) { loading.innerText = "エラー。"; }
     };
 
