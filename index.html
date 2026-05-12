@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v82.0</title>
+    <title>執行 OS v84.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100dvh; flex-direction: column; overflow: hidden; }
         header { background: var(--p); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 30; }
-        .config-btn { background: none; border: none; color: white; font-size: 1.4rem; cursor: pointer; }
         #chat { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 88%; padding: 14px; border-radius: 18px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
         .ai { align-self: flex-start; background: white; border-left: 5px solid var(--a); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -19,7 +18,7 @@
         .input-row { display: flex; gap: 8px; align-items: center; }
         input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
         input[type="text"].has-img { border: 2px solid var(--a); background: #fff5f5; }
-        .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-size: 1.2rem; }
+        .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .status-bar { background: #111; font-size: 0.65rem; padding: 4px 15px; color: #00ff00; display: flex; justify-content: space-between; }
         #file-indicator { position: absolute; top: -5px; right: -5px; background: var(--a); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: bold; }
@@ -28,19 +27,15 @@
 <body>
 
 <header>
-    <div><strong id="display-name">AIセンター長</strong></div>
-    <button class="config-btn" onclick="openSettings()">⚙️</button>
+    <div><strong>執行 OS v84.0</strong></div>
+    <button style="background:none;border:none;color:white;font-size:1.4rem;" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
-    <span id="sys-status">システム：正常稼働中</span>
-    <span id="data-count">データ読込中...</span>
+    <span id="sys-status">Vision強化：最大出力</span>
+    <span id="data-count">Ready</span>
 </div>
 
-<div id="chat">
-    <div class="msg ai">主君、深くお詫び申し上げます。
-すべてのバックアップ機能とインポート機能を復旧させた v82.0 です。
-⚙️ボタンから、いつでも「聖典」をインポートし、バックアップを保存いただけます。</div>
-</div>
+<div id="chat"></div>
 
 <div id="panel">
     <input type="file" id="imgInput" accept="image/*" style="display:none;">
@@ -49,7 +44,7 @@
         <button class="action-btn" onclick="document.getElementById('imgInput').click()">📷
             <div id="file-indicator">!</div>
         </button>
-        <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
+        <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()" style="background:#e8f5e9;color:#2e7d32;">🧠</button>
         <input type="text" id="userInput" placeholder="報告を入力..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">🚀</button>
     </div>
@@ -57,25 +52,19 @@
 
 <script type="module">
     import OpenAI from "https://cdn.jsdelivr.net/npm/openai@4.28.0/+esm";
-    
     const STORAGE_KEY = 'URAA_INTEGRATED_BRAIN';
     const API_KEY_STORE = 'URAA_API_KEY';
 
-    let KEY = localStorage.getItem(API_KEY_STORE);
-    let brain = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-        name: "AIセンター長", personality: "忠節と冷徹な執行官", structuredData: [], soulMemory: []
-    };
+    let brain = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { structuredData: [], soulMemory: [] };
     let chatHistory = [];
     let memoryMode = false;
     let selectedImageBase64 = null;
 
     const updateUI = () => {
-        document.getElementById('display-name').innerText = brain.name;
         document.getElementById('data-count').innerText = `数値: ${brain.structuredData.length}件 / 魂: ${brain.soulMemory.length}件`;
     };
     updateUI();
 
-    // 画像処理
     document.getElementById('imgInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -84,12 +73,12 @@
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const max = 1000;
+                const max = 800;
                 let w = img.width, h = img.height;
                 if (w > max) { h *= max/w; w = max; }
                 canvas.width = w; canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.5);
                 document.getElementById('file-indicator').style.display = 'flex';
                 document.getElementById('userInput').classList.add('has-img');
             };
@@ -98,66 +87,14 @@
         reader.readAsDataURL(file);
     });
 
-    // 記憶ファイル読込
-    document.getElementById('brainFile').addEventListener('change', (e) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const imported = JSON.parse(ev.target.result);
-                if (imported.structuredData) {
-                    brain = imported;
-                } else if (Array.isArray(imported)) {
-                    brain.structuredData = [...brain.structuredData, ...imported];
-                }
-                saveBrain();
-                alert("記憶の同期に成功。再起動します。");
-                location.reload();
-            } catch(err) { alert("JSON形式が正しくありません。"); }
-        };
-        reader.readAsText(e.target.files[0]);
-    });
-
-    window.openSettings = () => {
-        const choice = prompt(
-            "【執行設定】\n" +
-            "1: APIキー設定\n" +
-            "2: 名前変更\n" +
-            "3: 記憶ファイルを統合・読込 (.json)\n" +
-            "4: 現在の知能をバックアップ保存 (DL)\n" +
-            "5: 直接データ編集\n" +
-            "6: 記憶リセット"
-        );
-        if (choice === "1") {
-            const v = prompt("Key", KEY || ""); if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
-        } else if (choice === "2") {
-            const n = prompt("名前", brain.name); if (n) { brain.name = n; saveBrain(); updateUI(); }
-        } else if (choice === "3") {
-            document.getElementById('brainFile').click();
-        } else if (choice === "4") {
-            const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `BRAIN_BACKUP.json`; a.click();
-        } else if (choice === "5") {
-            const d = prompt("データ直編集(JSON):", JSON.stringify(brain.structuredData));
-            if (d) { try { brain.structuredData = JSON.parse(d); saveBrain(); updateUI(); } catch(e){alert("形式不正");} }
-        } else if (choice === "6") {
-            if(confirm("全消去しますか？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
-        }
-    };
-
-    window.toggleMemoryMode = () => {
-        memoryMode = !memoryMode;
-        document.getElementById('memBtn').style.background = memoryMode ? "#2e7d32" : "#e8f5e9";
-        document.getElementById('memBtn').style.color = memoryMode ? "#fff" : "#2e7d32";
-    };
-
     window.exec = async () => {
         const i = document.getElementById('userInput');
         const text = i.value.trim();
+        const KEY = localStorage.getItem(API_KEY_STORE);
         if (!KEY || (!text && !selectedImageBase64)) return;
 
-        addMsg(text || "画像を解析せよ", 'user', selectedImageBase64);
-        if (memoryMode) { brain.soulMemory.push(text); saveBrain(); updateUI(); toggleMemoryMode(); }
+        addMsg(text || "解析執行", 'user', selectedImageBase64);
+        if (memoryMode && text) { brain.soulMemory.push(text); localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); updateUI(); toggleMemoryMode(); }
 
         const currentImg = selectedImageBase64;
         selectedImageBase64 = null;
@@ -165,28 +102,70 @@
         i.classList.remove('has-img');
         document.getElementById('file-indicator').style.display = 'none';
 
-        const loading = addMsg("執行中...", 'ai');
+        const loading = addMsg("分析中...", 'ai');
         try {
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
-            let content = [{ type: "text", text: text || "画像解析報告" }];
+            let content = [{ type: "text", text: text || "画像の内容を報告せよ。" }];
             if (currentImg) content.push({ type: "image_url", image_url: { url: currentImg } });
+
+            // 画像有無で記憶の「深さ」を自動調整
+            const sysMsg = currentImg 
+                ? `あなたはAIセンター長。主君への忠誠を誓う。画像解析に集中せよ。直近魂の指針: ${JSON.stringify(brain.soulMemory.slice(-3))}`
+                : `あなたはAIセンター長。魂の記憶: ${JSON.stringify(brain.soulMemory)}\n数値データ: ${JSON.stringify(brain.structuredData)}`;
 
             const res = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [
-                    { role: "system", content: `あなたは${brain.name}です。魂: ${JSON.stringify(brain.soulMemory.slice(-5))}\nデータ: ${JSON.stringify(brain.structuredData.slice(-5))}` },
-                    ...chatHistory.slice(-4),
+                    { role: "system", content: sysMsg },
+                    ...chatHistory.slice(currentImg ? -2 : -6),
                     { role: "user", content: content }
                 ]
             });
             const reply = res.choices[0].message.content;
             loading.innerText = reply;
-            chatHistory.push({ role: "user", content: text || "(画像)" });
+            chatHistory.push({ role: "user", content: text || "(画像解析)" });
             chatHistory.push({ role: "assistant", content: reply });
-        } catch (e) { loading.innerText = "エラー。"; }
+        } catch (e) {
+            loading.innerText = "エラー：容量限界。一度テキスト送信して通信をリセットしてください。";
+        }
     };
 
-    function saveBrain() { localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); }
+    window.openSettings = () => {
+        const c = prompt("1:Key / 3:JSON読込 / 4:保存 / 5:直編集 / 6:リセット");
+        if (c === "1") {
+            const v = prompt("Key", localStorage.getItem(API_KEY_STORE) || ""); 
+            if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
+        } else if (c === "3") {
+            document.getElementById('brainFile').click();
+        } else if (c === "4") {
+            const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `BRAIN_FINAL.json`; a.click();
+        } else if (c === "5") {
+            const d = prompt("JSON:", JSON.stringify(brain.structuredData));
+            if (d) { try { brain.structuredData = JSON.parse(d); localStorage.setItem(STORAGE_KEY, JSON.stringify(brain)); updateUI(); } catch(e){alert("不正");} }
+        } else if (c === "6") {
+            if(confirm("全消去？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        }
+    };
+
+    document.getElementById('brainFile').addEventListener('change', (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            brain = JSON.parse(ev.target.result);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
+            location.reload();
+        };
+        reader.readAsText(e.target.files[0]);
+    });
+
+    function toggleMemoryMode() {
+        memoryMode = !memoryMode;
+        const b = document.getElementById('memBtn');
+        b.style.background = memoryMode ? "#2e7d32" : "#e8f5e9";
+        b.style.color = memoryMode ? "#fff" : "#2e7d32";
+    }
+
     function addMsg(t, s, img = null) {
         const c = document.getElementById('chat');
         const m = document.createElement('div');
