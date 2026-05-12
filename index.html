@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v86.0</title>
+    <title>執行 OS v87.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -28,7 +28,7 @@
 <body>
 
 <header>
-    <div><strong>執行 OS v86.0</strong></div>
+    <div><strong>執行 OS v87.0</strong></div>
     <button style="background:none;border:none;color:white;font-size:1.4rem;" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
@@ -40,7 +40,6 @@
 
 <div id="panel">
     <input type="file" id="imgInput" accept="image/*" style="display:none;">
-    <input type="file" id="brainFile" style="display:none;" accept=".json">
     <div class="input-row">
         <button class="action-btn" onclick="document.getElementById('imgInput').click()">📷<div id="file-indicator">!</div></button>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
@@ -134,42 +133,51 @@
         } catch (e) { loading.innerText = "エラー。"; }
     };
 
-    window.openSettings = () => {
-        const c = prompt("1:Key / 3:JSON読込 / 4:保存 / 6:リセット");
+    window.openSettings = async () => {
+        const c = prompt("1:Key / 3:JSON読込(インポート) / 4:バックアップ保存(ダウンロード) / 6:リセット");
         if (c === "1") {
             const v = prompt("Key", localStorage.getItem(API_KEY_STORE) || ""); 
             if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
         } else if (c === "3") {
-            document.getElementById('brainFile').click();
-        } else if (c === "4") {
-            // バックアップ回路を確実に再構築
+            // 直接ファイルピッカーを起動する方式に修正
             try {
-                const dataStr = JSON.stringify(brain, null, 2);
-                const blob = new Blob([dataStr], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `BRAIN_MASTER_BACKUP.json`;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-                alert("バックアップファイルを書き出しました。");
-            } catch(e) { alert("保存に失敗しました: " + e); }
+                const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+                const file = await fileHandle.getFile();
+                const text = await file.text();
+                const imported = JSON.parse(text);
+                brain = imported;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
+                alert("記憶の同期に成功。再起動します。");
+                location.reload();
+            } catch (e) {
+                // showOpenFilePickerが使えないブラウザ（古いSafari等）用のフォールバック
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        brain = JSON.parse(ev.target.result);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
+                        alert("同期完了。再起動。");
+                        location.reload();
+                    };
+                    reader.readAsText(e.target.files[0]);
+                };
+                input.click();
+            }
+        } else if (c === "4") {
+            const dataStr = JSON.stringify(brain, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `BRAIN_MASTER_BACKUP.json`;
+            a.click();
+            alert("バックアップを保存しました。");
         } else if (c === "6") {
             if(confirm("全消去？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
         }
     };
-
-    document.getElementById('brainFile').addEventListener('change', (e) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            brain = JSON.parse(ev.target.result);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
-            location.reload();
-        };
-        reader.readAsText(e.target.files[0]);
-    });
 
     function addMsg(t, s, img = null) {
         const c = document.getElementById('chat');
