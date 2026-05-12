@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v85.0</title>
+    <title>執行 OS v86.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -16,8 +16,9 @@
         .img-preview { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; }
         .input-row { display: flex; gap: 8px; align-items: center; }
-        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
+        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; transition: 0.3s; }
         input[type="text"].has-img { border: 2px solid var(--a); background: #fff5f5; }
+        input[type="text"].mem-active { border: 2px solid #2e7d32; background: #f1f8e9; }
         .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-size: 1.2rem; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         .status-bar { background: #111; font-size: 0.65rem; padding: 4px 15px; color: #00ff00; display: flex; justify-content: space-between; }
@@ -27,7 +28,7 @@
 <body>
 
 <header>
-    <div><strong>執行 OS v85.0</strong></div>
+    <div><strong>執行 OS v86.0</strong></div>
     <button style="background:none;border:none;color:white;font-size:1.4rem;" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
@@ -41,11 +42,9 @@
     <input type="file" id="imgInput" accept="image/*" style="display:none;">
     <input type="file" id="brainFile" style="display:none;" accept=".json">
     <div class="input-row">
-        <button class="action-btn" onclick="document.getElementById('imgInput').click()">📷
-            <div id="file-indicator">!</div>
-        </button>
+        <button class="action-btn" onclick="document.getElementById('imgInput').click()">📷<div id="file-indicator">!</div></button>
         <button id="memBtn" class="action-btn" onclick="toggleMemoryMode()">🧠</button>
-        <input type="text" id="userInput" placeholder="メッセージを入力..." autocomplete="off">
+        <input type="text" id="userInput" placeholder="報告を入力..." autocomplete="off">
         <button id="sendBtn" onclick="exec()">🚀</button>
     </div>
 </div>
@@ -65,26 +64,22 @@
     };
     updateUI();
 
-    // 🧠ボタンのトグル処理を確実に
     window.toggleMemoryMode = () => {
         isMemoryMode = !isMemoryMode;
         const btn = document.getElementById('memBtn');
         const status = document.getElementById('mem-status');
-        
+        const input = document.getElementById('userInput');
         if (isMemoryMode) {
-            btn.style.background = "#2e7d32";
-            btn.style.color = "#ffffff";
-            status.innerText = "魂の刻印モード：ON";
-            status.style.color = "#ffeb3b";
+            btn.style.background = "#2e7d32"; btn.style.color = "#fff";
+            status.innerText = "魂の刻印モード：ON"; status.style.color = "#ffeb3b";
+            input.classList.add('mem-active');
         } else {
-            btn.style.background = "#eee";
-            btn.style.color = "#000000";
-            status.innerText = "通常モード";
-            status.style.color = "#00ff00";
+            btn.style.background = "#eee"; btn.style.color = "#000";
+            status.innerText = "通常モード"; status.style.color = "#00ff00";
+            input.classList.remove('mem-active');
         }
     };
 
-    // 画像処理
     document.getElementById('imgInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -113,19 +108,16 @@
         const KEY = localStorage.getItem(API_KEY_STORE);
         if (!KEY || (!text && !selectedImageBase64)) return;
 
-        // 記憶モードなら保存
         if (isMemoryMode && text) {
             brain.soulMemory.push(text);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
-            updateUI();
-            toggleMemoryMode(); // 一回ごとにリセット（安全策）
+            updateUI(); toggleMemoryMode();
         }
 
         addMsg(text || "解析執行", 'user', selectedImageBase64);
         const currentImg = selectedImageBase64;
         selectedImageBase64 = null;
-        i.value = "";
-        i.classList.remove('has-img');
+        i.value = ""; i.classList.remove('has-img');
         document.getElementById('file-indicator').style.display = 'none';
 
         const loading = addMsg("分析中...", 'ai');
@@ -133,22 +125,12 @@
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
             let content = [{ type: "text", text: text || "画像を解析せよ。" }];
             if (currentImg) content.push({ type: "image_url", image_url: { url: currentImg } });
-
-            const sysMsg = currentImg 
-                ? `あなたはAIセンター長。画像解析優先。魂の指針: ${JSON.stringify(brain.soulMemory.slice(-3))}`
-                : `あなたはAIセンター長。魂の記憶: ${JSON.stringify(brain.soulMemory)}\n数値データ: ${JSON.stringify(brain.structuredData)}`;
-
             const res = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [
-                    { role: "system", content: sysMsg },
-                    ...chatHistory.slice(currentImg ? -2 : -6),
-                    { role: "user", content: content }
-                ]
+                messages: [{ role: "system", content: "あなたはAIセンター長です。" }, ...chatHistory.slice(-2), { role: "user", content: content }]
             });
             loading.innerText = res.choices[0].message.content;
-            chatHistory.push({ role: "user", content: text || "(画像)" });
-            chatHistory.push({ role: "assistant", content: res.choices[0].message.content });
+            chatHistory.push({ role: "user", content: text || "(画像)" }, { role: "assistant", content: res.choices[0].message.content });
         } catch (e) { loading.innerText = "エラー。"; }
     };
 
@@ -160,9 +142,20 @@
         } else if (c === "3") {
             document.getElementById('brainFile').click();
         } else if (c === "4") {
-            const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `BRAIN_V85.json`; a.click();
+            // バックアップ回路を確実に再構築
+            try {
+                const dataStr = JSON.stringify(brain, null, 2);
+                const blob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `BRAIN_MASTER_BACKUP.json`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+                alert("バックアップファイルを書き出しました。");
+            } catch(e) { alert("保存に失敗しました: " + e); }
         } else if (c === "6") {
             if(confirm("全消去？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
         }
