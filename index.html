@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>執行 OS v87.0</title>
+    <title>執行 OS v88.0</title>
     <style>
         :root { --p: #1a237e; --a: #ff1744; --bg: #f0f2f5; }
         * { box-sizing: border-box; }
@@ -16,8 +16,7 @@
         .img-preview { max-width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; }
         #panel { background: white; padding: 10px 15px env(safe-area-inset-bottom); border-top: 1px solid #ddd; }
         .input-row { display: flex; gap: 8px; align-items: center; }
-        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; transition: 0.3s; }
-        input[type="text"].has-img { border: 2px solid var(--a); background: #fff5f5; }
+        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
         input[type="text"].mem-active { border: 2px solid #2e7d32; background: #f1f8e9; }
         .action-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; font-size: 1.2rem; }
         #sendBtn { background: var(--p); color: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
@@ -28,12 +27,12 @@
 <body>
 
 <header>
-    <div><strong>執行 OS v87.0</strong></div>
+    <div><strong>執行 OS v88.0</strong></div>
     <button style="background:none;border:none;color:white;font-size:1.4rem;" onclick="openSettings()">⚙️</button>
 </header>
 <div class="status-bar">
     <span id="mem-status">通常モード</span>
-    <span id="data-count">Ready</span>
+    <span id="data-count">読込中...</span>
 </div>
 
 <div id="chat"></div>
@@ -59,7 +58,7 @@
     let selectedImageBase64 = null;
 
     const updateUI = () => {
-        document.getElementById('data-count').innerText = `数値: ${brain.structuredData.length}件 / 魂: ${brain.soulMemory.length}件`;
+        document.getElementById('data-count').innerText = `数値: ${brain.structuredData ? brain.structuredData.length : 0}件 / 魂: ${brain.soulMemory ? brain.soulMemory.length : 0}件`;
     };
     updateUI();
 
@@ -79,6 +78,7 @@
         }
     };
 
+    // 画像選択
     document.getElementById('imgInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -94,7 +94,6 @@
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                 selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.5);
                 document.getElementById('file-indicator').style.display = 'flex';
-                document.getElementById('userInput').classList.add('has-img');
             };
             img.src = ev.target.result;
         };
@@ -116,7 +115,7 @@
         addMsg(text || "解析執行", 'user', selectedImageBase64);
         const currentImg = selectedImageBase64;
         selectedImageBase64 = null;
-        i.value = ""; i.classList.remove('has-img');
+        i.value = "";
         document.getElementById('file-indicator').style.display = 'none';
 
         const loading = addMsg("分析中...", 'ai');
@@ -124,56 +123,60 @@
             const openai = new OpenAI({ apiKey: KEY, dangerouslyAllowBrowser: true });
             let content = [{ type: "text", text: text || "画像を解析せよ。" }];
             if (currentImg) content.push({ type: "image_url", image_url: { url: currentImg } });
+            
             const res = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [{ role: "system", content: "あなたはAIセンター長です。" }, ...chatHistory.slice(-2), { role: "user", content: content }]
+                messages: [
+                    { role: "system", content: `あなたはAIセンター長。魂:${JSON.stringify(brain.soulMemory.slice(-3))}` },
+                    ...chatHistory.slice(-2),
+                    { role: "user", content: content }
+                ]
             });
             loading.innerText = res.choices[0].message.content;
             chatHistory.push({ role: "user", content: text || "(画像)" }, { role: "assistant", content: res.choices[0].message.content });
         } catch (e) { loading.innerText = "エラー。"; }
     };
 
-    window.openSettings = async () => {
-        const c = prompt("1:Key / 3:JSON読込(インポート) / 4:バックアップ保存(ダウンロード) / 6:リセット");
+    window.openSettings = () => {
+        const c = prompt("1:Key / 3:JSON読込(インポート) / 4:バックアップ / 6:リセット");
         if (c === "1") {
             const v = prompt("Key", localStorage.getItem(API_KEY_STORE) || ""); 
             if (v) { localStorage.setItem(API_KEY_STORE, v); location.reload(); }
         } else if (c === "3") {
-            // 直接ファイルピッカーを起動する方式に修正
-            try {
-                const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
-                const file = await fileHandle.getFile();
-                const text = await file.text();
-                const imported = JSON.parse(text);
-                brain = imported;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
-                alert("記憶の同期に成功。再起動します。");
-                location.reload();
-            } catch (e) {
-                // showOpenFilePickerが使えないブラウザ（古いSafari等）用のフォールバック
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                input.onchange = (e) => {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        brain = JSON.parse(ev.target.result);
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(brain));
-                        alert("同期完了。再起動。");
-                        location.reload();
-                    };
-                    reader.readAsText(e.target.files[0]);
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        // データ構造の正規化
+                        let newBrain = { structuredData: [], soulMemory: [] };
+                        if (imported.structuredData || imported.soulMemory) {
+                            newBrain.structuredData = imported.structuredData || [];
+                            newBrain.soulMemory = imported.soulMemory || [];
+                        } else if (Array.isArray(imported)) {
+                            newBrain.structuredData = imported;
+                        }
+                        
+                        // 確実に保存してからリロード
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(newBrain));
+                        setTimeout(() => {
+                            alert(`同期完了: 数値 ${newBrain.structuredData.length}件 / 魂 ${newBrain.soulMemory.length}件`);
+                            location.reload();
+                        }, 200);
+                    } catch(err) { alert("不正なJSONです。"); }
                 };
-                input.click();
-            }
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
         } else if (c === "4") {
-            const dataStr = JSON.stringify(brain, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([JSON.stringify(brain, null, 2)], {type: 'application/json'});
             const a = document.createElement('a');
-            a.href = url; a.download = `BRAIN_MASTER_BACKUP.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `BRAIN_FINAL_v88.json`;
             a.click();
-            alert("バックアップを保存しました。");
         } else if (c === "6") {
             if(confirm("全消去？")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
         }
